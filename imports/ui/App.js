@@ -19,10 +19,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 
     handleSubmit(event) {
       event.preventDefault();
-   
       // Find the text field via the React ref
       const text = ReactDOM.findDOMNode(this.refs.textInput).value.trim();
-   
 
       Meteor.call('tasks.insert', text);
       // Clear form
@@ -34,11 +32,14 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         hideCompleted: !this.state.hideCompleted,
       });
     }
+
   renderTasks() {
     let filteredTasks = this.props.tasks;
+    
     if (this.state.hideCompleted) {
       filteredTasks = filteredTasks.filter(task => !task.checked);
     }
+
     return filteredTasks.map((task) => {
       const currentUserId = this.props.currentUser && this.props.currentUser._id;
       const showPrivateButton = task.owner === currentUserId;
@@ -54,25 +55,29 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
   }
  
   render() {
-    console.log('asfasfasf')
+
     return (
       <div className="container">
         <header>
         <h1>Todo List ({this.props.incompleteCount})</h1>
 
           <label className="hide-completed">
-          <input
-            type="checkbox"
-            readOnly
-            checked={  this.state.hideCompleted }
-            onClick={ this.toggleHideCompleted.bind(this)}
-          />
+            <input
+              type="checkbox"
+              readOnly
+              checked={  this.state.hideCompleted }
+              onClick={ this.toggleHideCompleted.bind(this)}
+            />
           Hide Completed Tasks
         </label>
+
         <AccountsUIWrapper />
         
         { this.props.currentUser ?
-          <form className="new-task" onSubmit={this.handleSubmit.bind(this)} >
+          <form 
+            className="new-task" 
+            onSubmit={this.handleSubmit.bind(this)} 
+          >
             <input
               type="text"
               ref="textInput"
@@ -80,7 +85,6 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
             />
           </form> : ''
         }
-
 
         </header>
  
