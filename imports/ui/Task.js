@@ -29,8 +29,8 @@ export default class Task extends Component {
      private: this.props.task.private,
     });
     
-    const reg = /(сегодня|завтра)/;
-    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/;
+    const reg = /(сегодня|завтра)/i;
+    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/i;
 
     const text = this.props.task.text.replace(reg,'');
     const textNew = text.replace(timeReg,'');
@@ -44,6 +44,7 @@ export default class Task extends Component {
         transitionAppearTimeout={5000}
       >
         <li className={taskClassName} >
+
           <button 
             className="delete" 
             onClick={this.deleteThisTask.bind(this)}

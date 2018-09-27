@@ -3,7 +3,6 @@ import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
 
 import { check } from 'meteor/check';
-import { error } from 'util';
 
 export const Tasks = new Mongo.Collection('tasks');
 
@@ -29,11 +28,11 @@ Meteor.methods({
     let codePhraseTime = '';
 
     
-    const todayReg = /сегодня/;
-    const tomorrowReg = /завтра/;
-    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/;
+    const todayReg = /сегодня/i;
+    const tomorrowReg = /завтра/i;
+    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/i;
     
-    if (((text.match(timeReg)) &&  (!text.match(todayReg)))) throw new Error('Time determined, date not');
+    if (((text.match(timeReg)) &&  (!text.match(todayReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
   
     const date = new Date();
 

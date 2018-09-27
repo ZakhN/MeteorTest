@@ -22,7 +22,11 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       // Find the text field via the React ref
       const text = ReactDOM.findDOMNode(this.refs.textInput).value.trim();
 
-      Meteor.call('tasks.insert', text);
+      Meteor.call('tasks.insert', text, (error)=>{
+        if (error && error.error === "There is no date") {
+          Session.set("errorMessage", "Please insert the day.");
+        }
+      });
       // Clear form
       ReactDOM.findDOMNode(this.refs.textInput).value = '';
     }
@@ -35,7 +39,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 
   renderTasks() {
     let filteredTasks = this.props.tasks;
-    
+
     if (this.state.hideCompleted) {
       filteredTasks = filteredTasks.filter(task => !task.checked);
     }
@@ -68,8 +72,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
               checked={  this.state.hideCompleted }
               onClick={ this.toggleHideCompleted.bind(this)}
             />
-          Hide Completed Tasks
-        </label>
+            Hide Completed Tasks
+          </label>
 
         <AccountsUIWrapper />
         
@@ -85,7 +89,6 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
             />
           </form> : ''
         }
-
         </header>
  
         <ul>
