@@ -22,12 +22,12 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       // Find the text field via the React ref
       const text = ReactDOM.findDOMNode(this.refs.textInput).value.trim();
 
-      Meteor.call('tasks.insert', text, (error)=>{
-        if (error && error.error === "There is no date") {
-          Session.set("errorMessage", "Please insert the day.");
-        }
-      });
-      // Clear form
+      Meteor.call('tasks.insert', text, );
+      // Clear form(error)=>{
+      //   if (error && error.error === "There is no date") {
+      //     Session.set("errorMessage", "Please insert the day.");
+      //   }
+      // }
       ReactDOM.findDOMNode(this.refs.textInput).value = '';
     }
    

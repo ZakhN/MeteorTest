@@ -28,20 +28,23 @@ Meteor.methods({
     let codePhraseTime = '';
 
     
-    const todayReg = /сегодня/i;
-    const tomorrowReg = /завтра/i;
-    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/i;
+    const todayReg = /(^| )сегодня(\W|$)/gi;
+    const tomorrowReg = /(^| )завтра(\W|$)/gi;
+    const datReg = /(сегодня |завтра )/ig;
+    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/ig;
     
-    if (((text.match(timeReg)) &&  (!text.match(todayReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
+    if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
   
     const date = new Date();
 
     if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
-    if (text.match(tomorrowReg)) codePhrase =  new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
+    else if (text.match(tomorrowReg)) codePhrase =  new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
     if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
 
     codePhrase = codePhrase + ' ' + codePhraseTime;
-      
+
+    console.log(codePhrase);  
+
     Tasks.insert({
       text,
       createdAt: new Date(),

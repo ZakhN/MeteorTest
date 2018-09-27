@@ -29,11 +29,11 @@ export default class Task extends Component {
      private: this.props.task.private,
     });
     
-    const reg = /(сегодня|завтра)/i;
-    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/i;
+    const reg = /(завтра |сегодня )/g;
+    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/gi;
 
-    const text = this.props.task.text.replace(reg,'');
-    const textNew = text.replace(timeReg,'');
+    const text = this.props.task.text.replace(timeReg,'');
+    const textNew = text.replace(reg,'');
 
     return (
       <ReactCSSTransitionGroup
