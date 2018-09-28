@@ -6,6 +6,6 @@ import '../imports/startup/accounts-config.js';
 import App from '../imports/ui/App';
  
 Meteor.startup(() => {
- // Meteor.absoluteUrl.defaultOptions.rootUrl = 'https://meteor-test-deploy.herokuapp.com';
+  Meteor.absoluteUrl.defaultOptions.rootUrl = 'meteor-test-deploy.herokuapp.com/_oauth/google';
   render(<App />, document.getElementById('render-target'));
 });
