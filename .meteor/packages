@@ -18,6 +18,8 @@ shell-server@0.3.1            # Server-side component of the `meteor shell` comm
 
 static-html
 react-meteor-data
-accounts-ui@1.3.0
+accounts-ui
 accounts-password@1.5.1
 meteortesting:mocha
+accounts-google
+google-config-ui
