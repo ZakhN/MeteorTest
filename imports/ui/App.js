@@ -72,6 +72,16 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
               checked={  this.state.hideCompleted }
               onClick={ this.toggleHideCompleted.bind(this)}
             />
+            Add to calendar
+          </label>
+        <br/>
+          <label className="hide-completed">
+            <input
+              type="checkbox"
+              readOnly
+              checked={  this.state.hideCompleted }
+              onClick={ this.toggleHideCompleted.bind(this)}
+            />
             Hide Completed Tasks
           </label>
 

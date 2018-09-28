@@ -51,14 +51,14 @@ export default class Task extends Component {
           >
             &times;
           </button>
-  
-          <input
+        
+       
+         <input
             type="checkbox"
             readOnly
             checked={!!this.props.task.checked}
             onClick={this.toggleChecked.bind(this)}
           />
-
           <span className="text">
             <strong>{this.props.task.username}</strong>: {textNew} <strong>{ (this.props.task.dueDate.length > 1) ? 'dueDate:' : '' }</strong> { this.props.task.dueDate  }
           </span>

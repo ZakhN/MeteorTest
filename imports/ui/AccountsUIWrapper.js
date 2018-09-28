@@ -8,7 +8,9 @@ export default class AccountsUIWrapper extends Component {
     // Use Meteor Blaze to render login buttons
     this.view = Blaze.render(Template.loginButtons,
       ReactDOM.findDOMNode(this.refs.container));
+/*
       Meteor.loginWithGoogle({
+
         requestPermissions: ['email']
       }, function(error) {
         if (error) {
@@ -17,6 +19,7 @@ export default class AccountsUIWrapper extends Component {
           console.log(Meteor.user());// If there is successful login, you will get login details here
         }
       });
+      */
   }
   componentWillUnmount() {
     // Clean up Blaze view
