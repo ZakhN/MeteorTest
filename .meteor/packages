@@ -21,5 +21,3 @@ react-meteor-data
 accounts-ui
 accounts-password@1.5.1
 meteortesting:mocha
-accounts-google
-google-config-ui
