@@ -108,6 +108,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     );
   }
 }
+
 export default withTracker(() => {
   Meteor.subscribe('tasks');
   return {
