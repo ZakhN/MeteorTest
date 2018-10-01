@@ -65,6 +65,8 @@ Meteor.methods({
         const calendar = google.calendar({version: 'v3', auth: oauth2Client });
 
         var event = {
+          'summary': 'Google I/O 2015',
+          'description': 'A chance to hear more about Google\'s developer products.',
           'start': {
             'dateTime': '2018-10-28T09:00:00-07:00',
           },
