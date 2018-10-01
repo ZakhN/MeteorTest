@@ -6,6 +6,11 @@ import '../imports/startup/accounts-config.js';
 import App from '../imports/ui/App';
  
 Meteor.startup(() => {
-  Meteor.absoluteUrl.defaultOptions.rootUrl = 'meteor-test-deploy.herokuapp.com';
+  Accounts.ui.config({
+    requestPermissions:{
+      google: ['https://www.googleapis.com/auth/calendar']
+    }
+  });
+  // Meteor.absoluteUrl.defaultOptions.rootUrl = 'meteor-test-deploy.herokuapp.com';
   render(<App />, document.getElementById('render-target'));
 });

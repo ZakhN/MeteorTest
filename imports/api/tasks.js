@@ -18,8 +18,11 @@ if (Meteor.isServer) {
 }
 
 Meteor.methods({
-  'tasks.insert': function(text){
+  'tasks.insert': function(text, sendToCalendar){
     check(text, String);
+    check(sendToCalendar, Boolean);
+    
+ 
 
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
@@ -27,14 +30,13 @@ Meteor.methods({
     let codePhrase = '';
     let codePhraseTime = '';
 
-    
     const todayReg = /(^| )сегодня(\W|$)/gi;
     const tomorrowReg = /(^| )завтра(\W|$)/gi;
     const datReg = /(сегодня |завтра )/ig;
     const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/ig;
     
     if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
-  
+
     const date = new Date();
 
     if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
@@ -42,59 +44,50 @@ Meteor.methods({
     if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
 
     codePhrase = codePhrase + ' ' + codePhraseTime;
+    // use moment to get date
 
-    console.log(codePhrase);  
-
-    Tasks.insert({
+    const taskId = Tasks.insert({
       text,
       createdAt: new Date(),
       owner: this.userId,
       username: Meteor.users.findOne(this.userId).username,
       dueDate: codePhrase
     });
+    
+      if (Meteor.isServer && sendToCalendar ){
 
-    const {google} = require('googleapis');
+        const {google} = require('googleapis');
 
-var event = {
-  'summary': 'Google I/O 2015',
-  'location': '800 Howard St., San Francisco, CA 94103',
-  'description': 'A chance to hear more about Google\'s developer products.',
-  'start': {
-    'dateTime': '2015-05-28T09:00:00-07:00',
-    'timeZone': 'America/Los_Angeles',
-  },
-  'end': {
-    'dateTime': '2015-05-28T17:00:00-07:00',
-    'timeZone': 'America/Los_Angeles',
-  },
-  'recurrence': [
-    'RRULE:FREQ=DAILY;COUNT=2'
-  ],
-  'attendees': [
-    {'email': 'lpage@example.com'},
-    {'email': 'sbrin@example.com'},
-  ],
-  'reminders': {
-    'useDefault': false,
-    'overrides': [
-      {'method': 'email', 'minutes': 24 * 60},
-      {'method': 'popup', 'minutes': 10},
-    ],
-  },
-};
+        const oauth2Client = new google.auth.OAuth2('706668132829-8jvq7kj0burvehenqdt4on94ac8ganv6.apps.googleusercontent.com', 'Zc2Z5kVeo7zg0DkkwRMaQLmG',  'http://localhost:3000/_oauth/google');
 
-const calendar = google.calendar({version: 'v3', auth});
-  calendar.events.insert({
-    auth: auth,
-    calendarId: 'primary',
-    resource: event,
-  }, function(err, event) {
-    if (err) {
-      console.log('There was an error contacting the Calendar service: ' + err);
-      return;
-    }
-    console.log('Event created: %s', event.htmlLink);
-  });
+        oauth2Client.credentials = { access_token: Meteor.user().services && Meteor.user().services.google && Meteor.user().services.google.accessToken };
+
+        const calendar = google.calendar({version: 'v3', auth: oauth2Client });
+
+        var event = {
+          'start': {
+            'dateTime': '2018-10-28T09:00:00-07:00',
+          },
+          'end': {
+            'dateTime': '2018-10-28T09:00:00-07:00',
+          },
+        };
+
+        const accessToken = Meteor.user().services && Meteor.user().services.google && Meteor.user().services.google.accessToken;
+        if (!accessToken) throw new Error('Please autorize via Google');
+
+        calendar.events.insert({
+          auth: oauth2Client,
+          calendarId: 'primary',
+          resource: event,
+        }, function(err, event) {
+          if (err) {
+            console.log('There was an error contacting the Calendar service: ' + err);
+            return;
+          }
+          console.log('Event created: %s', event.htmlLink);
+        });
+      }
   },
 
   'tasks.remove': function(taskId) {

@@ -14,6 +14,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
    
       this.state = {
         hideCompleted: false,
+        sendToCalendar: false,
       };
     }
 
@@ -21,8 +22,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       event.preventDefault();
       // Find the text field via the React ref
       const text = ReactDOM.findDOMNode(this.refs.textInput).value.trim();
-
-      Meteor.call('tasks.insert', text, );
+      // const sendToCalendar = 
+      Meteor.call('tasks.insert', text, this.state.sendToCalendar);
       // Clear form(error)=>{
       //   if (error && error.error === "There is no date") {
       //     Session.set("errorMessage", "Please insert the day.");
@@ -34,6 +35,12 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     toggleHideCompleted() {
       this.setState({
         hideCompleted: !this.state.hideCompleted,
+      });
+    }
+
+    toggleSendTocalendar() {
+      this.setState({
+        sendToCalendar: !this.state.sendToCalendar,
       });
     }
 
@@ -63,6 +70,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     return (
       <div className="container">
         <header>
+
         <h1>Todo List ({this.props.incompleteCount})</h1>
 
           <label className="hide-completed">
@@ -72,17 +80,20 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
               checked={  this.state.hideCompleted }
               onClick={ this.toggleHideCompleted.bind(this)}
             />
-            Add to calendar
+            Hide Completed Tasks
           </label>
-        <br/>
-          <label className="hide-completed">
+
+      
+
+          <label className="send-to-calendar">
             <input
+              
               type="checkbox"
               readOnly
-              checked={  this.state.hideCompleted }
-              onClick={ this.toggleHideCompleted.bind(this)}
+              checked={  this.state.sendToCalendar }
+              onClick={ this.toggleSendTocalendar.bind(this)}
             />
-            Hide Completed Tasks
+            Add to calendar
           </label>
 
         <AccountsUIWrapper />
