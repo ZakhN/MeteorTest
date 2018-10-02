@@ -6,7 +6,7 @@ import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 export default class Task extends Component {
 
   toggleChecked() {
-    // Set the checked property to the opposite of its current value
+
     Meteor.call('tasks.setChecked', this.props.task._id, !this.props.task.checked);
   }
   deleteThisTask() {
@@ -18,19 +18,13 @@ export default class Task extends Component {
 
   render() {
 
-   // text.test(timeReg) && (!text.test(reg)) && console.log('objectobjectobjectobjectobject');
-   // const text = this.props.task.text.replace(this.props.task.dueDate,'');
-   // const todayReg = /сегодня/;
-   // const tomorrowReg = /завтра/;
-   // const regExp = /(сегодня|завтра) && (\s([1-9]|1[0-2]):[0-9]{2}\s(AM|PM))/gim;
-
    const taskClassName = classnames({
      checked: this.props.task.checked,
      private: this.props.task.private,
     });
-    
-    const reg = /(завтра |сегодня )/g;
-    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/gi;
+
+    const reg = /((^| )сегодня(\W|$)|(^| )завтра(\W|$))/ig;
+    const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/ig;
 
     const text = this.props.task.text.replace(timeReg,'');
     const textNew = text.replace(reg,'');
@@ -60,7 +54,7 @@ export default class Task extends Component {
             onClick={this.toggleChecked.bind(this)}
           />
           <span className="text">
-            <strong>{this.props.task.username}</strong>: {textNew} <strong>{ (this.props.task.dueDate.length > 1) ? 'dueDate:' : '' }</strong> { this.props.task.dueDate  }
+            <strong>{this.props.task.username}</strong>: {textNew} <strong>{ (this.props.task.dueDate) ? 'dueDate:' : '' }</strong> { (this.props.task.dueDate) ? moment(this.props.task.dueDate).format('LLLL') : '' }
           </span>
   
         </li>

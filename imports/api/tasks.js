@@ -3,6 +3,10 @@ import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
 
 import { check } from 'meteor/check';
+import { format } from 'util';
+import { isMoment } from '../../node_modules/moment';
+
+// import moment from 'moment';
 
 export const Tasks = new Mongo.Collection('tasks');
 
@@ -22,8 +26,6 @@ Meteor.methods({
     check(text, String);
     check(sendToCalendar, Boolean);
     
- 
-
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
@@ -32,26 +34,25 @@ Meteor.methods({
 
     const todayReg = /(^| )сегодня(\W|$)/gi;
     const tomorrowReg = /(^| )завтра(\W|$)/gi;
-    const datReg = /(сегодня |завтра )/ig;
+    const datReg = /((^| )сегодня(\W|$)|(^| )завтра(\W|$))/ig;
     const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/ig;
     
     if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
 
     const date = new Date();
 
-    if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
-    else if (text.match(tomorrowReg)) codePhrase =  new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
+    if (text.match(todayReg)) codePhrase = new Date().toDateString();
+    else if (text.match(tomorrowReg)) codePhrase =  new Date(date.setDate(date.getDate() + 1)).toDateString();
     if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
 
     codePhrase = codePhrase + ' ' + codePhraseTime;
-    // use moment to get date
 
-    const taskId = Tasks.insert({
+    Tasks.insert({
       text,
       createdAt: new Date(),
       owner: this.userId,
       username: Meteor.users.findOne(this.userId).username,
-      dueDate: codePhrase
+      dueDate: new Date(codePhrase),
     });
     
       if (Meteor.isServer && sendToCalendar ){
@@ -63,15 +64,15 @@ Meteor.methods({
         oauth2Client.credentials = { access_token: Meteor.user().services && Meteor.user().services.google && Meteor.user().services.google.accessToken };
 
         const calendar = google.calendar({version: 'v3', auth: oauth2Client });
-
+        
         var event = {
-          'summary': 'Google I/O 2015',
-          'description': 'A chance to hear more about Google\'s developer products.',
+          'summary': text.split(' ')[2],
+          'description': text,
           'start': {
-            'dateTime': '2018-10-28T09:00:00-07:00',
+            'dateTime': moment(codePhrase).format(),
           },
           'end': {
-            'dateTime': '2018-10-28T09:00:00-07:00',
+            'dateTime': moment(codePhrase).format(),
           },
         };
 
