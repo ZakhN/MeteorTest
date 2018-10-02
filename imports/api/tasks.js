@@ -38,7 +38,7 @@ Meteor.methods({
 
     const date = new Date();
 
-    if (text.match(todayReg)) codePhrase = new Date().toDateString();
+    if (text.match(todayReg)) codePhrase = new Date(date.setDate(date.getDate())).toDateString();
     else if (text.match(tomorrowReg)) codePhrase =  new Date(date.setDate(date.getDate() + 1)).toDateString();
     if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
 
@@ -51,7 +51,7 @@ Meteor.methods({
       username: Meteor.users.findOne(this.userId).username,
       dueDate: codePhrase.length > 1 ? new Date(codePhrase) : '',
     });
-    
+
       if (Meteor.isServer && sendToCalendar ){
 
         const {google} = require('googleapis');
