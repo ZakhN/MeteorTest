@@ -3,10 +3,6 @@ import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
 
 import { check } from 'meteor/check';
-import { format } from 'util';
-import { isMoment } from '../../node_modules/moment';
-
-// import moment from 'moment';
 
 export const Tasks = new Mongo.Collection('tasks');
 
@@ -25,6 +21,7 @@ Meteor.methods({
   'tasks.insert': function(text, sendToCalendar){
     check(text, String);
     check(sendToCalendar, Boolean);
+    let i;
     
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
