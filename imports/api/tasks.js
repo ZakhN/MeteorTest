@@ -66,7 +66,7 @@ Meteor.methods({
         const calendar = google.calendar({version: 'v3', auth: oauth2Client });
         
         var event = {
-          'summary': text.split(' ')[2],
+          'summary': 'meteor-event',
           'description': text,
           'start': {
             'dateTime': moment(codePhrase).format(),
