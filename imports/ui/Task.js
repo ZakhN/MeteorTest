@@ -26,8 +26,8 @@ export default class Task extends Component {
     const reg = /((^| )сегодня(\W|$)|(^| )завтра(\W|$))/ig;
     const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/ig;
 
-    const text = this.props.task.text.replace(timeReg,'');
-    const textNew = text.replace(reg,'');
+    const text = this.props.task.text.replace(timeReg,' ');
+    const textNew = text.replace(reg,' ');
 
     return (
       <ReactCSSTransitionGroup
@@ -54,7 +54,7 @@ export default class Task extends Component {
             onClick={this.toggleChecked.bind(this)}
           />
           <span className="text">
-            <strong>{this.props.task.username}</strong> {textNew} <strong>{ (this.props.task.dueDate) ? 'dueDate:' : '' }</strong> { (this.props.task.dueDate) ? moment(this.props.task.dueDate).format('LLLL') : '' }
+            <strong>{this.props.task.username}</strong> {textNew} <strong>{ (this.props.task.dueDate) ? 'dueDate:' : '' }</strong> { (this.props.task.dueDate) ? moment(this.props.task.dueDate).format('LLL') : '' }
           </span>
   
         </li>

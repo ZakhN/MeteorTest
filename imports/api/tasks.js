@@ -52,7 +52,7 @@ Meteor.methods({
       createdAt: new Date(),
       owner: this.userId,
       username: Meteor.users.findOne(this.userId).username,
-      dueDate: new Date(codePhrase),
+      dueDate: codePhrase.length > 1 ? new Date(codePhrase) : '',
     });
     
       if (Meteor.isServer && sendToCalendar ){
