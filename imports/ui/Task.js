@@ -54,7 +54,7 @@ export default class Task extends Component {
             onClick={this.toggleChecked.bind(this)}
           />
           <span className="text">
-            <strong>{this.props.task.username}</strong> {textNew} <strong>{ (this.props.task.dueDate) ? 'dueDate:' : '' }</strong> { (this.props.task.dueDate) ? moment(this.props.task.dueDate).format('LLL') : '' }
+            <strong>{this.props.task.username}</strong> {textNew} <strong>{ (this.props.task.dueDate) ? 'dueDate:' : '' }</strong> { (this.props.task.dueDate) ? this.props.task.dueDate : '' }
           </span>
   
         </li>

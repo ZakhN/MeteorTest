@@ -16,16 +16,16 @@ if (Meteor.isServer) {
     });
   });
 }
-
 Meteor.methods({
   'tasks.insert': function(text, sendToCalendar){
     check(text, String);
     check(sendToCalendar, Boolean);
-    let i;
+
     
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
+    
     let codePhrase = '';
     let codePhraseTime = '';
 
@@ -36,20 +36,24 @@ Meteor.methods({
     
     if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
 
-    const date = new Date();
+      const date = new Date();
+    
+      if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
 
-    if (text.match(todayReg)) codePhrase = new Date(date.setDate(date.getDate())).toDateString();
-    else if (text.match(tomorrowReg)) codePhrase =  new Date(date.setDate(date.getDate() + 1)).toDateString();
-    if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
+      else if (text.match(tomorrowReg)) codePhrase =  new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
 
-    codePhrase = codePhrase + ' ' + codePhraseTime;
+      if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
+
+      codePhrase = codePhrase + ' ' + codePhraseTime;
+
+    console.log(codePhrase);
 
     Tasks.insert({
       text,
       createdAt: new Date(),
       owner: this.userId,
       username: Meteor.users.findOne(this.userId).username,
-      dueDate: codePhrase.length > 1 ? new Date(codePhrase) : '',
+      dueDate: codePhrase.length > 1  ?  codePhrase : ' ',
     });
 
       if (Meteor.isServer && sendToCalendar ){
@@ -94,7 +98,6 @@ Meteor.methods({
     check(taskId, String);
     const task = Tasks.findOne(taskId);
     if (task.private && task.owner !== this.userId) {
-      // If the task is private, make sure only the owner can delete it
       throw new Meteor.Error('not-authorized');
     }
     Tasks.remove(taskId);
