@@ -16,11 +16,11 @@ if (Meteor.isServer) {
     });
   });
 }
+
 Meteor.methods({
   'tasks.insert': function(text, sendToCalendar){
     check(text, String);
     check(sendToCalendar, Boolean);
-
     
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
@@ -28,7 +28,7 @@ Meteor.methods({
     
     let codePhrase = '';
     let codePhraseTime = '';
-
+    //TODO Разделить текст с кодовой фразой и передавать в Tasks чистый текст
     const todayReg = /(^| )сегодня(\W|$)/gi;
     const tomorrowReg = /(^| )завтра(\W|$)/gi;
     const datReg = /((^| )сегодня(\W|$)|(^| )завтра(\W|$))/ig;
@@ -40,31 +40,37 @@ Meteor.methods({
     
       if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
 
-      else if (text.match(tomorrowReg)) codePhrase =  new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
+      else if (text.match(tomorrowReg)) codePhrase = new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
 
       if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
 
       codePhrase = codePhrase + ' ' + codePhraseTime;
 
-    console.log(codePhrase);
-
-    Tasks.insert({
-      text,
-      createdAt: new Date(),
-      owner: this.userId,
-      username: Meteor.users.findOne(this.userId).username,
-      dueDate: codePhrase.length > 1  ?  codePhrase : ' ',
-    });
-
-      if (Meteor.isServer && sendToCalendar ){
-
-        const {google} = require('googleapis');
-
+    if (codePhrase.length > 1) {
+      Tasks.insert({
+        text,
+        createdAt: new Date(),
+        owner: this.userId,
+        username: Meteor.user().username,
+        dueDate: new Date(codePhrase),
+      });
+    } else { 
+      Tasks.insert({
+        text,
+        createdAt: new Date(),
+        owner: this.userId,
+        username: Meteor.user().username,
+      });
+    }
+      if (Meteor.isServer && sendToCalendar){
+        
+        const { google } = require('googleapis');
+        //TODO Вынести в настройки
         const oauth2Client = new google.auth.OAuth2('706668132829-8jvq7kj0burvehenqdt4on94ac8ganv6.apps.googleusercontent.com', 'Zc2Z5kVeo7zg0DkkwRMaQLmG',  'http://localhost:3000/_oauth/google');
 
         oauth2Client.credentials = { access_token: Meteor.user().services && Meteor.user().services.google && Meteor.user().services.google.accessToken };
 
-        const calendar = google.calendar({version: 'v3', auth: oauth2Client });
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
         
         var event = {
           'summary': 'meteor-event',
@@ -96,10 +102,12 @@ Meteor.methods({
 
   'tasks.remove': function(taskId) {
     check(taskId, String);
+
     const task = Tasks.findOne(taskId);
     if (task.private && task.owner !== this.userId) {
       throw new Meteor.Error('not-authorized');
     }
+
     Tasks.remove(taskId);
   },
 
@@ -113,6 +121,7 @@ Meteor.methods({
       // If the task is private, make sure only the owner can check it off
       throw new Meteor.Error('not-authorized');
     }
+
     Tasks.update(taskId, { $set: { checked: setChecked } });
   },
 
