@@ -6,6 +6,8 @@ import { check } from 'meteor/check';
 
 export const Tasks = new Mongo.Collection('tasks');
 
+// moment.tz.setDefault("Europe/London");
+
 if (Meteor.isServer) {
   Meteor.publish('tasks', function tasksPublication() {
     return Tasks.find({
@@ -37,7 +39,7 @@ Meteor.methods({
     if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
 
       const date = new Date();
-    
+      
       if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
 
       else if (text.match(tomorrowReg)) codePhrase = new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
