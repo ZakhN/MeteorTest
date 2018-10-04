@@ -9,39 +9,42 @@ import Task from './Task.js';
 
 import AccountsUIWrapper from './AccountsUIWrapper.js';
  
-// App component - represents the whole app
   class App extends Component {
     constructor(props) {
       super(props);
    
       this.state = {
-        hideCompleted: false,
+        hideChecked: false,
         sendToCalendar: false,
+        todoText: ''
       };
-      
+
       this.handleSubmit = this.handleSubmit.bind(this);
       this.toggleHideCompleted = this.toggleHideCompleted.bind(this);
       this.toggleSendTocalendar = this.toggleSendTocalendar.bind(this);
+      this.handleChange = this.handleChange.bind(this);
+    }
+
+    componentDidUpdate(prevProps) {
+      if (!prevProps.currentUser && this.props.currentUser) {
+        this.setState({ hideChecked: this.props.currentUser && this.props.currentUser.profile && this.props.currentUser.profile.hideChecked });
+      }
     }
 
     handleSubmit(event) {
       event.preventDefault();
-      // Find the text field via the React ref
-      const text = ReactDOM.findDOMNode(this.refs.textInput).value.trim();
-      // const sendToCalendar = 
-      Meteor.call('tasks.insert', text, this.state.sendToCalendar);
-      // Clear form(error)=>{
-      //   if (error && error.error === "There is no date") {
-      //     Session.set("errorMessage", "Please insert the day.");
-      //   }
-      // }
-      ReactDOM.findDOMNode(this.refs.textInput).value = '';
+      // const text = ReactDOM.findDOMNode(this.refs.textInput).value.trim();
+      Meteor.call('tasks.insert', this.state.todoText, this.state.sendToCalendar);
+      this.setState({todoText:''});
+    }
+
+    handleChange(event) {
+      this.setState({todoText: event.target.value});
     }
 
     toggleHideCompleted() {
-      this.setState({
-        hideCompleted: !this.state.hideCompleted,
-      });
+      Meteor.call('tasks.hideChecked', !this.state.hideChecked);
+      this.setState({ hideChecked: !this.state.hideChecked });
     }
 
     toggleSendTocalendar() {
@@ -53,7 +56,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
   renderTasks() {
     let filteredTasks = this.props.tasks;
 
-    if (this.state.hideCompleted) {
+    if (this.state.hideChecked) {
+      
       filteredTasks = filteredTasks.filter(task => !task.checked);
     }
 
@@ -80,7 +84,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
             <input
               type="checkbox"
               readOnly
-              checked={this.state.hideCompleted }
+              checked={this.state.hideChecked }
               onClick={this.toggleHideCompleted}
             />
             Hide Completed Tasks
@@ -105,6 +109,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
               type="text"
               ref="textInput"
               placeholder="Type to add new tasks"
+              value={this.state.todoText}
+              onChange={this.handleChange}
             />
           </form> 
           : ''

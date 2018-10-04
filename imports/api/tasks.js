@@ -1,12 +1,8 @@
 import { Mongo } from 'meteor/mongo';
-
 import { Meteor } from 'meteor/meteor';
-
 import { check } from 'meteor/check';
 
 export const Tasks = new Mongo.Collection('tasks');
-
-// moment.tz.setDefault("Europe/London");
 
 if (Meteor.isServer) {
   Meteor.publish('tasks', function tasksPublication() {
@@ -20,7 +16,7 @@ if (Meteor.isServer) {
 }
 
 Meteor.methods({
-  'tasks.insert': function(text, sendToCalendar){
+  'tasks.insert': async function(text, sendToCalendar){
     check(text, String);
     check(sendToCalendar, Boolean);
     
@@ -38,81 +34,68 @@ Meteor.methods({
     
     if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
 
-      const date = new Date();
+    const date = new Date();
+    
+    if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
+
+    else if (text.match(tomorrowReg)) codePhrase = new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
+
+    if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
+
+    codePhrase = codePhrase + ' ' + codePhraseTime;
+
+    const task = {
+      text,
+      createdAt: new Date(),
+      owner: this.userId,
+      username: Meteor.user().username,
+    };
+    
+    if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
+
+    if (Meteor.isServer && sendToCalendar) {
+      import * as GoogleCalendar from '../integrations/google/calendar';
+
+      let event = {
+        summary: 'meteor-event',
+        description: text,
+        start: {
+          dateTime: moment(codePhrase).format(),
+        },
+        end: {
+          dateTime: moment(codePhrase).format(),
+        },
+      };
+
+      const createdEvent = await GoogleCalendar.createEvent({
+        event,
+        userId: Meteor.userId(),
+      });
       
-      if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
-
-      else if (text.match(tomorrowReg)) codePhrase = new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
-
-      if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
-
-      codePhrase = codePhrase + ' ' + codePhraseTime;
-
-    if (codePhrase.length > 1) {
-      Tasks.insert({
-        text,
-        createdAt: new Date(),
-        owner: this.userId,
-        username: Meteor.user().username,
-        dueDate: new Date(codePhrase),
-      });
-    } else { 
-      Tasks.insert({
-        text,
-        createdAt: new Date(),
-        owner: this.userId,
-        username: Meteor.user().username,
-      });
+      task.calendarEventId = createdEvent.id;
     }
-      if (Meteor.isServer && sendToCalendar){
-        
-        const { google } = require('googleapis');
-        //TODO Вынести в настройки
-        const oauth2Client = new google.auth.OAuth2('706668132829-8jvq7kj0burvehenqdt4on94ac8ganv6.apps.googleusercontent.com', 'Zc2Z5kVeo7zg0DkkwRMaQLmG',  'http://localhost:3000/_oauth/google');
-
-        oauth2Client.credentials = { access_token: Meteor.user().services && Meteor.user().services.google && Meteor.user().services.google.accessToken };
-
-        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-        
-        var event = {
-          'summary': 'meteor-event',
-          'description': text,
-          'start': {
-            'dateTime': moment(codePhrase).format(),
-          },
-          'end': {
-            'dateTime': moment(codePhrase).format(),
-          },
-        };
-
-        const accessToken = Meteor.user().services && Meteor.user().services.google && Meteor.user().services.google.accessToken;
-        if (!accessToken) throw new Error('Please autorize via Google');
-
-        calendar.events.insert({
-          auth: oauth2Client,
-          calendarId: 'primary',
-          resource: event,
-        }, function(err, event) {
-          if (err) {
-            console.log('There was an error contacting the Calendar service: ' + err);
-            return;
-          }
-          console.log('Event created: %s', event.htmlLink);
-        });
-      }
+    Tasks.insert(task);
   },
-
-  'tasks.remove': function(taskId) {
+  
+  'tasks.remove': async function(taskId) {
     check(taskId, String);
 
     const task = Tasks.findOne(taskId);
+
     if (task.private && task.owner !== this.userId) {
       throw new Meteor.Error('not-authorized');
     }
 
+    if (task.calendarEventId && Meteor.isServer) {
+      import * as GoogleCalendar from '../integrations/google/calendar';
+
+      GoogleCalendar.deleteEvent({
+        task: task,
+        userId: this.userId,
+      });
+    }
     Tasks.remove(taskId);
   },
-
 
   'tasks.setChecked': function(taskId, setChecked){
     check(taskId, String);
@@ -127,7 +110,6 @@ Meteor.methods({
     Tasks.update(taskId, { $set: { checked: setChecked } });
   },
 
-
   'tasks.setPrivate': function(taskId, setToPrivate){
     check(taskId, String);
     check(setToPrivate, Boolean);
@@ -138,4 +120,10 @@ Meteor.methods({
     }
     Tasks.update(taskId, { $set: { private: setToPrivate } });
   },
+
+  'tasks.hideChecked': function (isCheked){
+    check(isCheked, Boolean);
+
+    Meteor.users.update(this.userId, { $set:  { 'profile.hideChecked': isCheked } });
+  }
 });

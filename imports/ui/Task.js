@@ -6,6 +6,11 @@ import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 export default class Task extends Component {
   constructor(props) {
     super(props);
+
+    this.state = {
+      checked: this.props.task.checked,
+    };
+    
     this.toggleChecked = this.toggleChecked.bind(this);
     this.togglePrivate = this.togglePrivate.bind(this);
     this.deleteThisTask = this.deleteThisTask.bind(this);
@@ -36,6 +41,7 @@ export default class Task extends Component {
     const textNew = text.replace(reg,' ');
 
     return (
+      
       <ReactCSSTransitionGroup
         transitionName="example"
         transitionEnterTimeout={5000}
@@ -43,6 +49,7 @@ export default class Task extends Component {
         transitionAppear={true}
         transitionAppearTimeout={5000}
       >
+      
         <li className={taskClassName} >
           <button 
             className="delete" 
@@ -53,18 +60,26 @@ export default class Task extends Component {
          <input
             type="checkbox"
             readOnly
-            checked={this.props.task.checked}
+            checked={this.state.checked}
             onClick={this.toggleChecked}
           />
-          <span className="text">
-            <strong>{this.props.task.username}</strong>
-            {textNew}
-            <strong>{(this.props.task.dueDate) ? 'dueDate:' : ''}</strong>
-              {this.props.task.dueDate
-                ? moment.utc(this.props.task.dueDate).format('LLL')
-                : '' 
-              }
-          </span>
+          
+          { this.props.showPrivateButton ? (
+            <button className="toggle-private" onClick={this.togglePrivate.bind(this)}>
+              { this.props.task.private ? 'Private' : 'Public' }
+            </button>
+          ) : ''}
+
+            <span className="text">
+              <strong>{this.props.task.username}</strong>
+              {textNew}
+              <strong>{(this.props.task.dueDate) ? 'dueDate:' : ''}</strong>
+                {this.props.task.dueDate
+                  ? moment.utc(this.props.task.dueDate).format('LLL')
+                  : '' 
+                }
+            </span>
+          
         </li>
       </ReactCSSTransitionGroup>
     );
