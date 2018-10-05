@@ -17,15 +17,15 @@ export default class Task extends Component {
   }
   
   toggleChecked() {
-    Meteor.call('tasks.setChecked', this.props.task._id, !this.props.task.checked);
+    Meteor.call('tasks.setChecked', { taskId: this.props.task._id, setChecked: !this.props.task.checked });
   }
 
   deleteThisTask() {
-    Meteor.call('tasks.remove', this.props.task._id);
+    Meteor.call('tasks.remove',  {taskId:this.props.task._id});
   }
 
   togglePrivate() {
-    Meteor.call('tasks.setPrivate', this.props.task._id, !this.props.task.private);
+    Meteor.call('tasks.setPrivate', { taskId: this.props.task._id,  setToPrivate: !this.props.task.private });
   }
 
   render() {

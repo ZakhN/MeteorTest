@@ -1,29 +1,102 @@
 import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
 import { check } from 'meteor/check';
+import { ValidatedMethod } from 'meteor/mdg:validated-method';
+import SimpleSchema from 'simpl-schema';
 
 export const Tasks = new Mongo.Collection('tasks');
 
-if (Meteor.isServer) {
-  Meteor.publish('tasks', function tasksPublication() {
-    return Tasks.find({
-      $or: [
-        { private: { $ne: true } },
-        { owner: this.userId },
-      ],
-    });
-  });
-}
+/*  tasks.remove
+    remove events from db and gCalengar
+*/
+new ValidatedMethod({
+  name: 'tasks.remove',
+  validate: new SimpleSchema({
+    taskId: { type: String, regEx: SimpleSchema.RegEx.Id },
+  }).validator(),
+  run({ taskId }) {
+    const task = Tasks.findOne(taskId);
 
-Meteor.methods({
-  'tasks.insert': async function(text, sendToCalendar){
-    check(text, String);
-    check(sendToCalendar, Boolean);
-    
+    if (!task) throw new Meteor.Error('Task does not exist');
+
+    if (task.private && task.owner !== this.userId) {
+      throw new Meteor.Error('not-authorized');
+    }
+
+    if (task.calendarEventId && Meteor.isServer) {
+      import * as GoogleCalendar from '../integrations/google/calendar';
+
+      GoogleCalendar.deleteEvent({
+        eventId: task.calendarEventId,
+        userId: this.userId,
+      });
+    }
+
+    Tasks.remove(taskId);
+  }
+});
+
+/*  tasks.hideChecked
+    hiden checked events from ui
+*/
+new ValidatedMethod({
+  name: 'tasks.hideChecked',
+  validate: new SimpleSchema({
+    isCheked: { type: Boolean },
+  }).validator(),
+  run({ isCheked }) {
+    Meteor.users.update(this.userId, { $set:  { 'profile.hideChecked': isCheked } });
+  }
+});
+
+/*  tasks.setPrivate
+    set events to private
+*/
+new ValidatedMethod({
+  name: 'tasks.setPrivate',
+  validate: new SimpleSchema({
+    taskId: { type: String, regEx: SimpleSchema.RegEx.Id },
+    setToPrivate: { type: Boolean },
+  }).validator(),
+  run({ setToPrivate, taskId }) {
+    const task = Tasks.findOne(taskId);
+
+    if (task.owner !== this.userId) {
+      throw new Meteor.Error('not-authorized');
+    }
+    Tasks.update(taskId, { $set: { private: setToPrivate } });
+  }
+});
+
+/*  tasks.setChecked
+    set events to checked
+*/
+new ValidatedMethod({
+  name: 'tasks.setChecked',
+  validate: new SimpleSchema({
+    setChecked: { type: Boolean },
+    taskId: { type: String },
+  }).validator(),
+  run({ setChecked, taskId }) {
+    Tasks.update(taskId, { $set: { checked: setChecked } });
+  }
+});
+
+/*  tasks.insert
+    insert events to the collection
+*/
+new ValidatedMethod({
+  name: 'tasks.insert',
+  validate: new SimpleSchema({
+    text: { type: String },
+    sendToCalendar: { type: Boolean },
+  }).validator(),
+   async run({ text, sendToCalendar }) {
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
     
+    //#region RegExps
     let codePhrase = '';
     let codePhraseTime = '';
     //TODO Разделить текст с кодовой фразой и передавать в Tasks чистый текст
@@ -31,7 +104,8 @@ Meteor.methods({
     const tomorrowReg = /(^| )завтра(\W|$)/gi;
     const datReg = /((^| )сегодня(\W|$)|(^| )завтра(\W|$))/ig;
     const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/ig;
-    
+    //#endregion 
+
     if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
 
     const date = new Date();
@@ -76,54 +150,80 @@ Meteor.methods({
     }
     Tasks.insert(task);
   },
-  
-  'tasks.remove': async function(taskId) {
-    check(taskId, String);
+});
 
-    const task = Tasks.findOne(taskId);
 
-    if (task.private && task.owner !== this.userId) {
-      throw new Meteor.Error('not-authorized');
-    }
 
-    if (task.calendarEventId && Meteor.isServer) {
-      import * as GoogleCalendar from '../integrations/google/calendar';
+if (Meteor.isServer) {
+  Meteor.publish('tasks', function tasksPublication() {
+    return Tasks.find({
+      $or: [
+        { private: { $ne: true } },
+        { owner: this.userId },
+      ],
+    });
+  });
+}
 
-      GoogleCalendar.deleteEvent({
-        task: task,
-        userId: this.userId,
-      });
-    }
-    Tasks.remove(taskId);
-  },
+Meteor.methods({
+  // 'tasks.insert': async function(text, sendToCalendar){
+  //   check(text, String);
+  //   check(sendToCalendar, Boolean);
+    
+  //   if (!this.userId) {
+  //     throw new Meteor.Error('not-authorized');
+  //   }
+    
+  //   let codePhrase = '';
+  //   let codePhraseTime = '';
+  //   //TODO Разделить текст с кодовой фразой и передавать в Tasks чистый текст
+  //   const todayReg = /(^| )сегодня(\W|$)/gi;
+  //   const tomorrowReg = /(^| )завтра(\W|$)/gi;
+  //   const datReg = /((^| )сегодня(\W|$)|(^| )завтра(\W|$))/ig;
+  //   const timeReg = /(?:[1-9]|1[0-2]):[0-9]{2}\s(?:AM|PM)/ig;
+    
+  //   if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
 
-  'tasks.setChecked': function(taskId, setChecked){
-    check(taskId, String);
-    check(setChecked, Boolean);
+  //   const date = new Date();
+    
+  //   if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
 
-    const task = Tasks.findOne(taskId);
-    if (task.private && task.owner !== this.userId) {
-      // If the task is private, make sure only the owner can check it off
-      throw new Meteor.Error('not-authorized');
-    }
+  //   else if (text.match(tomorrowReg)) codePhrase = new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
 
-    Tasks.update(taskId, { $set: { checked: setChecked } });
-  },
+  //   if (text.match(timeReg)) codePhraseTime = text.match(timeReg);
 
-  'tasks.setPrivate': function(taskId, setToPrivate){
-    check(taskId, String);
-    check(setToPrivate, Boolean);
-    const task = Tasks.findOne(taskId);
+  //   codePhrase = codePhrase + ' ' + codePhraseTime;
 
-    if (task.owner !== this.userId) {
-      throw new Meteor.Error('not-authorized');
-    }
-    Tasks.update(taskId, { $set: { private: setToPrivate } });
-  },
+  //   const task = {
+  //     text,
+  //     createdAt: new Date(),
+  //     owner: this.userId,
+  //     username: Meteor.user().username,
+  //   };
+    
+  //   if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
 
-  'tasks.hideChecked': function (isCheked){
-    check(isCheked, Boolean);
+  //   if (Meteor.isServer && sendToCalendar) {
+  //     import * as GoogleCalendar from '../integrations/google/calendar';
 
-    Meteor.users.update(this.userId, { $set:  { 'profile.hideChecked': isCheked } });
-  }
+  //     let event = {
+  //       summary: 'meteor-event',
+  //       description: text,
+  //       start: {
+  //         dateTime: moment(codePhrase).format(),
+  //       },
+  //       end: {
+  //         dateTime: moment(codePhrase).format(),
+  //       },
+  //     };
+
+  //     const createdEvent = await GoogleCalendar.createEvent({
+  //       event,
+  //       userId: Meteor.userId(),
+  //     });
+      
+  //     task.calendarEventId = createdEvent.id;
+  //   }
+  //   Tasks.insert(task);
+  // },
 });

@@ -21,7 +21,8 @@
     "react": "^16.4.1",
     "react-addons-css-transition-group": "^15.6.2",
     "react-dom": "^16.4.1",
-    "react-transition-group": "^1.2.1"
+    "react-transition-group": "^1.2.1",
+    "simpl-schema": "^1.5.3"
   },
   "meteor": {
     "mainModule": {

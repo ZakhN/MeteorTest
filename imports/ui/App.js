@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
-import ReactDOM from 'react-dom';
+
 
 import { withTracker } from 'meteor/react-meteor-data';
 import { Meteor } from 'meteor/meteor';
+
 
 import { Tasks } from '../api/tasks.js';
 import Task from './Task.js';
@@ -34,7 +35,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     handleSubmit(event) {
       event.preventDefault();
       // const text = ReactDOM.findDOMNode(this.refs.textInput).value.trim();
-      Meteor.call('tasks.insert', this.state.todoText, this.state.sendToCalendar);
+      Meteor.call('tasks.insert', { text: this.state.todoText, sendToCalendar: this.state.sendToCalendar });
       this.setState({todoText:''});
     }
 
@@ -43,7 +44,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     }
 
     toggleHideCompleted() {
-      Meteor.call('tasks.hideChecked', !this.state.hideChecked);
+      Meteor.call('tasks.hideChecked', { isCheked:!this.state.hideChecked });
       this.setState({ hideChecked: !this.state.hideChecked });
     }
 
@@ -57,7 +58,6 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     let filteredTasks = this.props.tasks;
 
     if (this.state.hideChecked) {
-      
       filteredTasks = filteredTasks.filter(task => !task.checked);
     }
 
@@ -84,7 +84,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
             <input
               type="checkbox"
               readOnly
-              checked={this.state.hideChecked }
+              checked={this.state.hideChecked}
               onClick={this.toggleHideCompleted}
             />
             Hide Completed Tasks
