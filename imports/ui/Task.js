@@ -21,7 +21,7 @@ export default class Task extends Component {
   }
 
   deleteThisTask() {
-    Meteor.call('tasks.remove',  {taskId:this.props.task._id});
+    Meteor.call('tasks.remove',  { taskId:this.props.task._id });
   }
 
   togglePrivate() {
