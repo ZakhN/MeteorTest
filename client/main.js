@@ -11,6 +11,7 @@ Meteor.startup(() => {
       google: ['https://www.googleapis.com/auth/calendar']
     }
   });
+  
   // Meteor.absoluteUrl.defaultOptions.rootUrl = 'meteor-test-deploy.herokuapp.com';
   render(<App />, document.getElementById('render-target'));
 });

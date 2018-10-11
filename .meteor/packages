@@ -26,3 +26,6 @@ google-config-ui
 momentjs:moment
 ddp-rate-limiter
 mdg:validated-method
+matb33:collection-hooks
+fourseven:scss
+twbs:bootstrap

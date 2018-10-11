@@ -32,6 +32,7 @@ ecmascript-runtime-server@0.7.0
 ejson@1.1.0
 email@1.2.3
 es5-shim@4.8.0
+fourseven:scss@4.9.3
 geojson-utils@1.0.10
 google-config-ui@1.0.0
 google-oauth@1.2.5
@@ -47,6 +48,7 @@ livedata@1.0.18
 lmieulet:meteor-coverage@1.1.4
 localstorage@1.2.0
 logging@1.1.20
+matb33:collection-hooks@0.8.4
 mdg:validated-method@1.2.0
 meteor@1.9.0
 meteor-base@1.4.0
@@ -98,6 +100,7 @@ templating-runtime@1.2.15
 templating-tools@1.1.2
 tmeasday:check-npm-versions@0.3.2
 tracker@1.2.0
+twbs:bootstrap@3.3.6
 underscore@1.0.10
 url@1.2.0
 webapp@1.6.1
