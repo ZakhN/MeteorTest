@@ -1,15 +1,11 @@
 import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
-import { check } from 'meteor/check';
 import { ValidatedMethod } from 'meteor/mdg:validated-method';
 import { DDPRateLimiter } from 'meteor/ddp-rate-limiter'
 import _ from 'lodash';
 import SimpleSchema from 'simpl-schema';
 
 export const Tasks = new Mongo.Collection('tasks');
-export const Lists = new Mongo.Collection('lists');
-
-// DDPRateLimiter.addRule(matcher, numRequests, timeInterval);
 
 
 /**
@@ -101,13 +97,17 @@ const taskInsert = new ValidatedMethod({
   validate: new SimpleSchema({
     text: { type: String },
     sendToCalendar: { type: Boolean },
-    listId: { type: String, regEx: SimpleSchema.RegEx.Id },
+    listId: { type: String },
   }).validator(),
    async run({ text, sendToCalendar, listId }) {
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
-    
+    // console.log(Meteor.user().profile.selectedListId);
+    if (Meteor.user().profile.selectedListId.length < 1) {
+      throw new Meteor.Error('You should select task-list before insert a new task');
+    }
+
     //#region RegExps
     let codePhrase = '';
     let codePhraseTime = '';
@@ -121,7 +121,7 @@ const taskInsert = new ValidatedMethod({
     if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
 
     const date = new Date();
-    
+
     if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
 
     else if (text.match(tomorrowReg)) codePhrase = new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
@@ -137,7 +137,7 @@ const taskInsert = new ValidatedMethod({
       username: Meteor.user().username,
       listId,
     };
-    
+
     if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
 
     if (Meteor.isServer && sendToCalendar) {
@@ -158,69 +158,11 @@ const taskInsert = new ValidatedMethod({
         event,
         userId: Meteor.userId(),
       });
-      
+
       task.calendarEventId = createdEvent.id;
     }
     Tasks.insert(task);
   },
-});
-
-/**
- * lists.create
- * @const create new list
- */
-const listCreate = new ValidatedMethod({
-  name: 'lists.create',
-  validate: new SimpleSchema({
-     name: { type: String },
-  }).validator(),
-  run({ name }) {
-
-   const list = Lists.insert({
-      name: name,
-      owner:  this.userId,
-    });
-
-    Meteor.users.update(this.userId, { $set:  { 'profile.lists': list } });
-  
-    console.log(Meteor.user().profile.lists);
-  }
-});
-
-/**
- * lists.remove
- * @const delete the list
- */
-const listRemove = new ValidatedMethod({
-  name: 'lists.remove',
-  validate: new SimpleSchema({
-     listId: { type: String },
-  }).validator(),
-  run({ listId }) {
-    const list = Tasks.findOne(listId);
-
-    if (!list) throw new Meteor.Error('List does not exist');
-
-    Lists.remove(listId)
-    Meteor.users.update(this.userId, { $set:  { 'profile.lists': '' } });
-    
-  }
-});
-
-/**
- * lists.update
- * @const update the list
- */
-const listUpdate = new ValidatedMethod({
-  name: 'lists.update',
-  validate: new SimpleSchema({
-     listId: { type: String },
-  }).validator(),
-  run({ listId }) {
-    const list = Tasks.findOne(listId);
-    if (!list) throw new Meteor.Error('List does not exist');
-    
-  }
 });
 
 
@@ -235,14 +177,6 @@ if (Meteor.isServer) {
     });
   });
 
-  Meteor.publish('lists', function listPublication() {
-    return Lists.find({
-      $or: [
-        { private: { $ne: true } },
-        { owner: this.userId },
-      ],
-    });
-  });
 
   const LISTS_METHODS = _.map([
     taskRemove,
@@ -250,9 +184,6 @@ if (Meteor.isServer) {
     taskSetPrivate,
     taskSetChecked,
     taskInsert,
-    listCreate,
-    listRemove,
-    listUpdate,
   ], 'name');
 
   DDPRateLimiter.addRule({
