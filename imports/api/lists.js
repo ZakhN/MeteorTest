@@ -1,7 +1,9 @@
 import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
+
 import { ValidatedMethod } from 'meteor/mdg:validated-method';
 import { DDPRateLimiter } from 'meteor/ddp-rate-limiter';
+
 import _ from 'lodash';
 import SimpleSchema from 'simpl-schema';
 
@@ -19,16 +21,18 @@ const listRemove = new ValidatedMethod({
   run({ listId }) {
     if (!this.userId) throw new Meteor.Error('Access denied');
 
-    const list = Lists.findOne({_id: listId});
+    const list = Lists.findOne(listId);
+    if (!list) throw new Meteor.Error('List do not exist');
+  
+    if (this.userId !== list.ownerId) throw new Meteor.Error('Access denied');
 
-    if (this.userId !== list.owner) throw new Meteor.Error('Access denied');
+    const isListRemoved = Lists.remove(listId);
 
-    const userListId =  Meteor.user().profile.selectedListId;
-
-    if (listId === userListId) {
-      Meteor.users.update(this.userId, { $set:  { 'profile.selectedListId': '' } });
+    if (isListRemoved) {
+      if (listId === Meteor.user().profile.selectedListId) {
+        Meteor.users.update(this.userId, { $unset:  { 'profile.selectedListId': 1 } });
+      }
     }
-    Lists.remove(listId);
   }
 });
 
@@ -46,10 +50,11 @@ const listUpdate = new ValidatedMethod({
     if (!this.userId) throw new Meteor.Error('Access denied');
 
     const list = Lists.findOne({_id: listId});
+    if (!list) throw new Meteor.Error('List do not exist');
 
-    if (this.userId !== list.owner) throw new Meteor.Error('Access denied');
+    if (this.userId !== list.ownerId) throw new Meteor.Error('Access denied');
 
-    Lists.update( listId, { $set: { 'name': name } });
+    Lists.update(listId, { $set: { name }});
   }
 });
 
@@ -61,21 +66,18 @@ const listSelect= new ValidatedMethod({
   name: 'lists.select',
   validate: new SimpleSchema({
      listId: { type: String },
-    //  userId: { type: String },
   }).validator(),
   run({ listId }) {
-
     if (!this.userId) throw new Meteor.Error('Access denied');
 
     const list = Lists.findOne({_id: listId});
+    if (!list) throw new Meteor.Error('List do not exist');
 
-    if (this.userId !== list.owner) throw new Meteor.Error('Access denied');
+    if (this.userId !== list.ownerId) throw new Meteor.Error('Access denied');
     
     Meteor.users.update(this.userId, { $set:  { 'profile.selectedListId': listId } });
-
     Lists.update({_id: { $ne: listId } }, { $set: { selected: false } }, { multi: true });
-
-    Lists.update( listId, { $set: { 'selected': true } });
+    Lists.update( listId, { $set: { selected: true } });
   }
 });
 
@@ -89,12 +91,12 @@ const listCreate = new ValidatedMethod({
      listName: { type: String },
   }).validator(),
   run({ listName }) {
-
     if (!this.userId) throw new Meteor.Error('Access denied');
 
     const list = Lists.insert({
       name: listName,
-      owner: this.userId,
+      ownerId: this.userId,
+      createdAt: new Date(),
     });
 
     return list;
@@ -103,21 +105,13 @@ const listCreate = new ValidatedMethod({
 
 if (Meteor.isServer) {
   Meteor.publish('lists', function listsPublication() {
-    return Lists.find({
-      $or: [
-        { private: { $ne: true } },
-        { owner: this.userId },
-      ],
-    });
+    return Lists.find({ ownerId: this.userId });
   });
 
   Meteor.publish('list', function listsPublication(_id) {
     return Lists.find({
       _id,
-      $or: [
-        { private: { $ne: true } },
-        { owner: this.userId },
-      ],
+      ownerId: this.userId,
     });
   });
 
@@ -126,7 +120,6 @@ if (Meteor.isServer) {
     listRemove,
     listUpdate,
     listSelect,
-
   ], 'name');
 
   DDPRateLimiter.addRule({
