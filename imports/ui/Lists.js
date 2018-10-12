@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Meteor } from 'meteor/meteor';
-import { Button, Badge, ButtonGroup, Popover,  PopoverBody, Input } from 'reactstrap';
+import { Button, Badge, ButtonGroup, Popover,  PopoverBody, Input, Form } from 'reactstrap';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import classnames from 'classnames';
 
@@ -11,13 +11,19 @@ export default class Lists extends Component {
       selectedList: this.props.list.selected ? this.props.list.selected: '',
       popover: false,
       newListName:'',
+      listName: this.props.list.name,
     };
-    this.handleChangeListNmae.bind(this);
-    this.toglePopover.bind(this);
+    this.handleChangeListNmae = this.handleChangeListNmae.bind(this);
+    this.toglePopover = this.toglePopover.bind(this);
+    this.onSubmit = this.onSubmit.bind(this);
   }
 
   handleChangeListNmae(e){
     this.setState({newListName: e.target.value});
+  }
+
+  onSubmit(){
+    Meteor.call('lists.update', {name: this.state.newListName, listId: this.props.list._id});
   }
 
   toglePopover(){
@@ -45,7 +51,7 @@ export default class Lists extends Component {
         transitionAppear={true}
         transitionAppearTimeout={5000}
       >
-        { this.props.list.owner === Meteor.user()._id ?
+        { this.props.list.ownerId === Meteor.user()._id ?
           <li className={taskClassName}>
             <ButtonGroup>
               <Button
@@ -64,18 +70,22 @@ export default class Lists extends Component {
               Update
               </Button>
               <Popover placement="bottom" isOpen={this.state.popover} target="Update" toggle={this.toglePopover}>
-                <PopoverBody>New list name : 
-                  <Input
-                    type="text"
-                    placeholder="Type to change list name"
-                    value={this.state.newListName}
-                    onChange={this.handleChangeListNmae.bind(this)}
-                  />
+                <PopoverBody>New list name :
+                  <Form
+                  onSubmit={this.onSubmit}
+                  >
+                    <Input
+                      type="text"
+                      placeholder="Type to update list"
+                      value={this.state.newListName}
+                      onChange={this.handleChangeListNmae.bind(this)}
+                    />
+                  </Form>
                 </PopoverBody>
               </Popover>
-            </ButtonGroup>
+            </ButtonGroup>{' '}
             <Badge>
-              <strong>  Name:  </strong>  {this.props.list.name}
+              <strong>Name:{' '}</strong>{' '}{this.state.listName}
             </Badge>
             <button
               className="delete"
@@ -88,3 +98,4 @@ export default class Lists extends Component {
     );
   }
 }
+

@@ -23,6 +23,7 @@ body {
 
 .tasks-container {
   margin: 0 auto;
+
   /* max-width: 600px; */
   width: 45%;
   /* align-self: center; */
@@ -152,7 +153,8 @@ li.private {
 
  
 header .hide-completed {
-  float: right;
+  float: initial;
+  padding: 7px;
 }
  
 .toggle-private {
@@ -183,5 +185,5 @@ input .send-to-calendar {
 }
 
 .list-head{
-  padding: 20px 5px 13px 15px;;
+  padding: 33px 5px 13px 15px;;
 }

@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { withTracker } from 'meteor/react-meteor-data';
 import {Form, FormGroup, Input, Popover,  PopoverBody,  } from 'reactstrap';
+import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 
 import { Meteor } from 'meteor/meteor';
 import { Tasks } from '../api/tasks.js';
@@ -20,16 +21,17 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         todoText: '',
         listId: '',
         listName: '',
-        modal: false,
+        popover: false,
       };
 
       this.toggleHideCompleted = this.toggleHideCompleted.bind(this);
       this.toggleSendTocalendar = this.toggleSendTocalendar.bind(this);
-      this.toggleModal = this.toggleModal.bind(this);
+      this.toglePopover = this.toglePopover.bind(this);
       this.handleSubmit = this.handleSubmit.bind(this);
       this.handleChange = this.handleChange.bind(this);
       this.handleChangeList = this.handleChangeList.bind(this);
       this.handleSubmitList = this.handleSubmitList.bind(this);
+      this.handleListName = this.handleListName.bind(this);
     }
 
     componentDidUpdate(prevProps) {
@@ -41,11 +43,12 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 
     handleSubmit(event) {
       event.preventDefault();
-      Meteor.call('tasks.insert', { text: this.state.todoText, sendToCalendar: this.state.sendToCalendar, listId: this.props.currentUser.profile.selectedListId }, 
+      Meteor.call('tasks.insert', { text: this.state.todoText, sendToCalendar: this.state.sendToCalendar }, 
         (error) => {
-          if (error){
-            this.toggleModal();
-             console.log('ERRR,', error.error);
+          
+          if (error && error.error ){
+            this.toglePopover();
+             console.log('ERRR,', error);
           }
       });
       this.setState({todoText:''});
@@ -57,8 +60,13 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       this.setState({listName:''});
     }
 
-    toggleModal(){
-      this.setState({modal: !this.state.modal});
+    handleListName(){
+      let list = this.props.lists.filter( l => l._id === Meteor.user().profile.selectedListId );
+      return (list[0] && list[0].name);
+    }
+
+    toglePopover(){
+      this.setState({popover: !this.state.popover});
     }
 
     handleChange(event) {
@@ -101,7 +109,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 
       return filteredTasks.map((task) => {
         const currentUserId = this.props.currentUser && this.props.currentUser._id;
-        const showPrivateButton = task.owner === currentUserId;
+        const showPrivateButton = task.ownerId === currentUserId;
         
         return (
           <Task
@@ -116,34 +124,42 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
   render() {
 
     return (
+    <ReactCSSTransitionGroup
+      transitionName="example"
+      transitionEnterTimeout={5000}
+      transitionLeaveTimeout={5000}
+      transitionAppear={true}
+      transitionAppearTimeout={5000}
+    >
       <div className="container">
 
         <div className="tasks-container">
           <header>
             <h1>Todo List ({this.props.incompleteCount})</h1>
             <label className="hide-completed">
-            <Form>
-              <Input
-                type="checkbox"
-                value={this.state.hideChecked}
-                readOnly
-                checked={this.state.hideChecked}
-                onClick={this.toggleHideCompleted}
-              />
-              Hide Completed Tasks
-            </Form>
+
+                <Input
+                  type="checkbox"
+                  readOnly
+                  checked={this.state.hideChecked}
+                  onClick={this.toggleHideCompleted}
+                />
+                Hide Completed Tasks
+
             </label>
-            <label className="send-to-calendar">
+
+            <label className="hide-completed">
+              <Form>
+                <Input
+                  type="checkbox"
+                  className = "send-to-calendar"
+                  readOnly
+                  checked={this.state.sendToCalendar}
+                  onClick={this.toggleSendTocalendar}
+                />
+                Add to calendar
+              </Form>
             </label>
-              <Input
-                type="checkbox"
-                className = "send-to-calendar"
-                value={this.state.sendToCalendar}
-                readOnly
-                checked={this.state.sendToCalendar}
-                onClick={this.toggleSendTocalendar}
-              />
-              Add to calendar
           <AccountsUIWrapper />
           
           {this.props.currentUser
@@ -160,8 +176,9 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
                     value={this.state.todoText}
                     onChange={this.handleChange}
                   />
-                  <Popover placement="bottom" isOpen={this.state.modal} target="taskText" toggle={this.toggleModal}>
-                    <PopoverBody>You should select task-list before insert a new task
+                  <Popover placement="bottom" isOpen={this.state.popover} target="taskText" toggle={this.toglePopover}>
+                    <PopoverBody>
+                      You should select task-list before insert a new task{' '}
                     </PopoverBody>
                   </Popover>
                 </FormGroup>
@@ -175,7 +192,9 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         </div>
         {this.props.currentUser 
         ? <div className="lists-container">
-            <h1 className = "list-head">Current list {this.props.lists.map(list => list._id === this.props.currentUser.profile.selectedlistId ? list.name  : '')}</h1>
+            <h1 className = "list-head">Current list:{' '}
+            { this.handleListName() }
+            </h1>
             { this.props.currentUser ?
               <Form 
                 className="new-list" 
@@ -192,12 +211,13 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
                 </FormGroup>
               </Form> : '' }
 
-            <ul className= ''>
+            <ul>
               { this.renderLists() }
             </ul>
 
           </div> : ''}
         </div>
+      </ReactCSSTransitionGroup>
     );
   }
 }
