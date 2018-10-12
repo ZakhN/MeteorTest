@@ -1,18 +1,18 @@
 import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
-import { check } from 'meteor/check';
+
 import { ValidatedMethod } from 'meteor/mdg:validated-method';
 import { DDPRateLimiter } from 'meteor/ddp-rate-limiter'
+
 import _ from 'lodash';
 import SimpleSchema from 'simpl-schema';
 
 export const Tasks = new Mongo.Collection('tasks');
 
-// DDPRateLimiter.addRule(matcher, numRequests, timeInterval);
-
-/*  tasks.remove
-    remove events from db and gCalengar
-*/
+/**
+ * tasks.remove
+ * @const remove events from db and gCalengar.
+ */
 const taskRemove = new ValidatedMethod({
   name: 'tasks.remove',
   validate: new SimpleSchema({
@@ -23,13 +23,14 @@ const taskRemove = new ValidatedMethod({
 
     if (!task) throw new Meteor.Error('Task does not exist');
 
-    if (task.private && task.owner !== this.userId) {
+    if (task.private && task.ownerId !== this.userId) {
       throw new Meteor.Error('not-authorized');
     }
 
     if (task.calendarEventId && Meteor.isServer) {
-      import * as GoogleCalendar from '../integrations/google/calendar';
-
+     /* eslint-disable */
+      import * as GoogleCalendar from '../integrations/google/calendar'; // eslint-disable-line
+    /* eslint-enable */
       GoogleCalendar.deleteEvent({
         eventId: task.calendarEventId,
         userId: this.userId,
@@ -40,9 +41,10 @@ const taskRemove = new ValidatedMethod({
   }
 });
 
-/*  tasks.hideChecked
-    hiden checked events from ui
-*/
+/**
+ * tasks.hideChecked
+ * @const hiden checked events from ui
+ */
 const taskHideCheked = new ValidatedMethod({
   name: 'tasks.hideChecked',
   validate: new SimpleSchema({
@@ -53,9 +55,10 @@ const taskHideCheked = new ValidatedMethod({
   }
 });
 
-/*  tasks.setPrivate
-    set events to private
-*/
+/**
+ * tasks.setPrivate
+ * @const set events to private
+ */
 const taskSetPrivate = new ValidatedMethod({
   name: 'tasks.setPrivate',
   validate: new SimpleSchema({
@@ -64,17 +67,19 @@ const taskSetPrivate = new ValidatedMethod({
   }).validator(),
   run({ setToPrivate, taskId }) {
     const task = Tasks.findOne(taskId);
+    if (!task) new Meteor.Error('Task do not exist');
 
-    if (task.owner !== this.userId) {
+    if (task.ownerId !== this.userId) {
       throw new Meteor.Error('not-authorized');
     }
     Tasks.update(taskId, { $set: { private: setToPrivate } });
   }
 });
 
-/*  tasks.setChecked
-    set events to checked
-*/
+/**
+ * tasks.setChecked
+ * @const set events to checked
+ */
 const taskSetChecked = new ValidatedMethod({
   name: 'tasks.setChecked',
   validate: new SimpleSchema({
@@ -82,24 +87,36 @@ const taskSetChecked = new ValidatedMethod({
     taskId: { type: String },
   }).validator(),
   run({ setChecked, taskId }) {
+    if (!this.userId) throw new Meteor.Error('Access denied');
+
+    const task = Tasks.findOne({_id: taskId});
+
+    if (this.userId !== task.ownerId) throw new Meteor.Error('Access denied');
+
     Tasks.update(taskId, { $set: { checked: setChecked } });
   }
 });
 
-/*  tasks.insert
-    insert events to the collection
-*/
+/**
+ * tasks.insert
+ * @const insert task into collection
+ */
 const taskInsert = new ValidatedMethod({
   name: 'tasks.insert',
   validate: new SimpleSchema({
     text: { type: String },
     sendToCalendar: { type: Boolean },
+    // listId: { type: String },
   }).validator(),
-   async run({ text, sendToCalendar }) {
+   async run({ text, sendToCalendar, listId }) {
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
-    
+    // console.log(Meteor.user().profile.selectedListId);
+    if (Meteor.user().profile.selectedListId.length < 1) {
+      throw new Meteor.Error('You should select task-list before insert a new task');
+    }
+
     //#region RegExps
     let codePhrase = '';
     let codePhraseTime = '';
@@ -113,7 +130,7 @@ const taskInsert = new ValidatedMethod({
     if (((text.match(timeReg)) && (!text.match(datReg)))) throw new Meteor.Error('There is no date','Time determined, date not');
 
     const date = new Date();
-    
+
     if (text.match(todayReg)) codePhrase = new Date().toLocaleDateString();
 
     else if (text.match(tomorrowReg)) codePhrase = new Date(date.setDate(date.getDate() + 1)).toLocaleDateString();
@@ -125,13 +142,15 @@ const taskInsert = new ValidatedMethod({
     const task = {
       text,
       createdAt: new Date(),
-      owner: this.userId,
+      ownerId: this.userId,
       username: Meteor.user().username,
+      listId: Meteor.user().profile.selectedListId,
     };
-    
+
     if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
 
-    if (Meteor.isServer && sendToCalendar) {
+    if (Meteor.isServer && sendToCalendar && Meteor.user().services.google && codePhrase.length > 2) {
+  
       import * as GoogleCalendar from '../integrations/google/calendar';
 
       let event = {
@@ -149,7 +168,7 @@ const taskInsert = new ValidatedMethod({
         event,
         userId: Meteor.userId(),
       });
-      
+
       task.calendarEventId = createdEvent.id;
     }
     Tasks.insert(task);
@@ -158,16 +177,16 @@ const taskInsert = new ValidatedMethod({
 
 
 
-
 if (Meteor.isServer) {
   Meteor.publish('tasks', function tasksPublication() {
     return Tasks.find({
       $or: [
         { private: { $ne: true } },
-        { owner: this.userId },
+        { ownerId: this.userId },
       ],
     });
   });
+
 
   const LISTS_METHODS = _.map([
     taskRemove,

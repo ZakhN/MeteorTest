@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
 import { Meteor } from 'meteor/meteor';
 import classnames from 'classnames';
+import { withTracker } from 'meteor/react-meteor-data';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
+import { Button, Badge, Input } from 'reactstrap';
+import { Lists } from '../api/lists';
 
-export default class Task extends Component {
+class Task extends Component {
   constructor(props) {
     super(props);
 
@@ -21,7 +24,7 @@ export default class Task extends Component {
   }
 
   deleteThisTask() {
-    Meteor.call('tasks.remove',  {taskId:this.props.task._id});
+    Meteor.call('tasks.remove',  { taskId:this.props.task._id });
   }
 
   togglePrivate() {
@@ -29,6 +32,8 @@ export default class Task extends Component {
   }
 
   render() {
+    // console.log(this.props);
+
    const taskClassName = classnames({
      checked: this.props.task.checked,
      private: this.props.task.private,
@@ -41,7 +46,6 @@ export default class Task extends Component {
     const textNew = text.replace(reg,' ');
 
     return (
-      
       <ReactCSSTransitionGroup
         transitionName="example"
         transitionEnterTimeout={5000}
@@ -49,7 +53,6 @@ export default class Task extends Component {
         transitionAppear={true}
         transitionAppearTimeout={5000}
       >
-      
         <li className={taskClassName} >
           <button 
             className="delete" 
@@ -57,31 +60,49 @@ export default class Task extends Component {
           >
             &times;
           </button>
-         <input
+
+          <Input
             type="checkbox"
             readOnly
             checked={this.state.checked}
-            onClick={this.toggleChecked}
+            // value={this.state.checked}
+            onClick={this.toggleChecked.bind(this)}
           />
           
           { this.props.showPrivateButton ? (
-            <button className="toggle-private" onClick={this.togglePrivate.bind(this)}>
-              { this.props.task.private ? 'Private' : 'Public' }
-            </button>
-          ) : ''}
-
-            <span className="text">
-              <strong>{this.props.task.username}</strong>
+              <Button
+                size="sm"
+                className="toggle-private" 
+                onClick={this.togglePrivate.bind(this)}
+                color="primary"
+              >
+                { this.props.task.private ? 'Private' : 'Public' }
+              </Button>
+          ) : ''
+          }
+          <span className="text">
+            <Badge color="secondary">{' '}List:{' '}
+              {this.props.lists.map(list => list._id === this.props.task.listId ? list.name  : '')}
+            </Badge>
+              <strong>  <Badge> {this.props.task.username}:{' '} </Badge>  </strong>
               {textNew}
-              <strong>{(this.props.task.dueDate) ? 'dueDate:' : ''}</strong>
-                {this.props.task.dueDate
-                  ? moment.utc(this.props.task.dueDate).format('LLL')
-                  : '' 
-                }
-            </span>
-          
+              <strong className="text-warning">  {(this.props.task.dueDate) ? <Badge> dueDate: </Badge> : ''}  </strong>
+              {this.props.task.dueDate
+                ? moment.utc(this.props.task.dueDate).format('LLL')
+                : '' 
+              }
+          </span>
         </li>
       </ReactCSSTransitionGroup>
     );
   }
 }
+
+export default withTracker(() => {
+  Meteor.subscribe('lists');
+  Meteor.subscribe('tasks');
+  return {
+    lists: Lists.find().fetch(),
+    // tasks: Tasks.find().fetch(),
+  };
+})(Task);

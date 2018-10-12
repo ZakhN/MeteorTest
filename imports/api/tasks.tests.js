@@ -17,7 +17,7 @@ if (Meteor.isServer) {
         taskId = Tasks.insert({
           text: 'test task',
           createdAt: new Date(),
-          owner: userId,
+          ownerId: userId,
           username: 'tmeasday',
         });
       });
