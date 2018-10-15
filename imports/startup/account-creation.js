@@ -7,12 +7,15 @@ Accounts.onCreateUser( (options, user) => {
     selected: true,
     createdAt: new Date(),
   });
+  console.log(user);
 
   let newUser = {
     profile: {
       selectedListId: listId,
     }
   };
+
+   if  (!user.username) user.username = user.services.google.name;
 
   newUser = Object.assign(user, newUser);
 
