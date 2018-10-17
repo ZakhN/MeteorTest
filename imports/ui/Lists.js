@@ -19,25 +19,25 @@ export default class Lists extends Component {
   }
 
   handleChangeListNmae(e){
-    this.setState({newListName: e.target.value});
+    this.setState({ newListName: e.target.value });
   }
 
   onSubmit(){
-    Meteor.call('lists.update', {name: this.state.newListName, listId: this.props.list._id});
+    Meteor.call('lists.update', { name: this.state.newListName, listId: this.props.list._id });
   }
 
   toglePopover(){
-    this.setState({popover: !this.state.popover});
+    this.setState({ popover: !this.state.popover});
   }
 
   deleteThisList(){
-    Meteor.call('lists.remove', {listId: this.props.list._id});
+    Meteor.call('lists.remove', { listId: this.props.list._id });
   }
 
   selectThisList(){
     Meteor.call('lists.select', { listId: this.props.list._id });
   }
-
+//this.props.list.ownerId === Meteor.user()._id || this.props.list.members.find(l => l.userId === this.userId ).userId === Meteor.user()._id
   render() {
     const taskClassName = classnames({
       listCheck: this.props.selected,
@@ -51,7 +51,7 @@ export default class Lists extends Component {
         transitionAppear={true}
         transitionAppearTimeout={5000}
       >
-        { this.props.list.ownerId === Meteor.user()._id ?
+        {  this.props.list.members.find(u => u.userId === Meteor.user()._id) ?
           <li className={taskClassName}>
             <ButtonGroup>
               <Button
@@ -67,12 +67,12 @@ export default class Lists extends Component {
                 color="primary"
                 onClick={this.toglePopover.bind(this)}
               >
-              Update
+                Update
               </Button>
               <Popover placement="bottom" isOpen={this.state.popover} target="Update" toggle={this.toglePopover}>
-                <PopoverBody>New list name :
+                <PopoverBody> New list name :
                   <Form
-                  onSubmit={this.onSubmit}
+                    onSubmit={this.onSubmit}
                   >
                     <Input
                       type="text"
@@ -85,7 +85,7 @@ export default class Lists extends Component {
               </Popover>
             </ButtonGroup>{' '}
             <Badge>
-              <strong>Name:{' '}</strong>{' '}{this.state.listName}
+              <strong> Name:{' '} </strong> {' '} {this.state.listName}
             </Badge>
             <button
               className="delete"

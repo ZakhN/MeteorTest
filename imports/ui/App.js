@@ -34,7 +34,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       this.handleListName = this.handleListName.bind(this);
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps, prevState) {
       if (!prevProps.currentUser && this.props.currentUser) {
         this.setState({ hideChecked: this.props.currentUser && this.props.currentUser.profile && this.props.currentUser.profile.hideChecked });
         // this.setState({ selectedList: this.this.props.currentUser && this.props.currentUser.profile &&  this.props.currentUser.profile.selectedListId});
@@ -43,10 +43,9 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 
     handleSubmit(event) {
       event.preventDefault();
-      Meteor.call('tasks.insert', { text: this.state.todoText, sendToCalendar: this.state.sendToCalendar }, 
+      Meteor.call('tasks.insert', { text: this.state.todoText, sendToCalendar: this.state.sendToCalendar, listId: this.props.currentUser ? this.props.currentUser.selectedListId : '' }, 
         (error) => {
-          
-          if (error && error.error ){
+          if (error && error.error ) {
             this.toglePopover();
              console.log('ERRR,', error);
           }
@@ -56,25 +55,27 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 
     handleSubmitList(event){
       event.preventDefault();
-      Meteor.call('lists.create', {listName: this.state.listName});
-      this.setState({listName:''});
+      Meteor.call('lists.create', { listName: this.state.listName });
+      this.setState({ listName:'' });
     }
 
-    handleListName(){
-      let list = this.props.lists.filter( l => l._id === Meteor.user().profile.selectedListId );
-      return (list[0] && list[0].name);
+    handleListName() {
+        if (this.props.lists) {
+          let list = this.props.lists.find( l => l._id === this.props.currentUser.selectedListId);
+          return (list && list.name);
+      }
     }
 
     toglePopover(){
-      this.setState({popover: !this.state.popover});
+      this.setState({ popover: !this.state.popover });
     }
 
     handleChange(event) {
-      this.setState({todoText: event.target.value});
+      this.setState({ todoText: event.target.value });
     }
 
     handleChangeList(event) {
-      this.setState({listName: event.target.value});
+      this.setState({ listName: event.target.value });
     }
 
     toggleHideCompleted() {
@@ -87,7 +88,6 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         sendToCalendar: !this.state.sendToCalendar,
       });
     }
-
     renderLists() {
       return this.props.lists.map((list) => {
         return (
@@ -122,6 +122,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     }
   
   render() {
+      // console.log('render',this.props.currentUser ? this.props.currentUser.selectedListId : '');
 
     return (
     <ReactCSSTransitionGroup
@@ -192,7 +193,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         </div>
         {this.props.currentUser 
         ? <div className="lists-container">
-            <h1 className = "list-head">Current list:{' '}
+            <h1 className = "list-head"> Current list:{' '}
             { this.handleListName() }
             </h1>
             { this.props.currentUser ?
@@ -225,6 +226,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 export default withTracker(() => {
   Meteor.subscribe('tasks');
   Meteor.subscribe('lists');
+  Meteor.subscribe('user');
+
   return {
     tasks: Tasks.find({}, { sort: { createdAt: -1 } }).fetch(),
     lists: Lists.find({}, { sort: { createdAt: -1 } }).fetch(),

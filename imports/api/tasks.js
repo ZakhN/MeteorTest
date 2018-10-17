@@ -7,6 +7,8 @@ import { DDPRateLimiter } from 'meteor/ddp-rate-limiter'
 import _ from 'lodash';
 import SimpleSchema from 'simpl-schema';
 
+import { Lists } from './lists';
+
 export const Tasks = new Mongo.Collection('tasks');
 
 /**
@@ -106,17 +108,21 @@ const taskInsert = new ValidatedMethod({
   validate: new SimpleSchema({
     text: { type: String },
     sendToCalendar: { type: Boolean },
+    listId: { type: String },
     // listId: { type: String },
   }).validator(),
    async run({ text, sendToCalendar, listId }) {
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
-    // console.log(Meteor.user().profile.selectedListId);
-    if (Meteor.user().profile.selectedListId.length < 1) {
-      throw new Meteor.Error('You should select task-list before insert a new task');
-    }
 
+    const list = Lists.findOne({
+      _id: listId,
+      'members.role': 'admin',
+      'members.userId': this.userId,
+    });
+    if (!list) throw new Meteor.Error('Access denied');
+    // console.log(list);
     //#region RegExps
     let codePhrase = '';
     let codePhraseTime = '';
@@ -144,13 +150,13 @@ const taskInsert = new ValidatedMethod({
       createdAt: new Date(),
       ownerId: this.userId,
       username: Meteor.user().username,
-      listId: Meteor.user().profile.selectedListId,
+      listId,
     };
 
     if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
 
-    if (Meteor.isServer && sendToCalendar && Meteor.user().services.google && codePhrase.length > 2) {
-  
+    if (Meteor.isServer && sendToCalendar && codePhrase.length > 2) {
+    
       import * as GoogleCalendar from '../integrations/google/calendar';
 
       let event = {
@@ -166,15 +172,16 @@ const taskInsert = new ValidatedMethod({
 
       const createdEvent = await GoogleCalendar.createEvent({
         event,
-        userId: Meteor.userId(),
+        userId: list.ownerId,
       });
 
+      // console.log(createdEvent);
+      
       task.calendarEventId = createdEvent.id;
     }
     Tasks.insert(task);
   },
 });
-
 
 
 if (Meteor.isServer) {
@@ -186,7 +193,6 @@ if (Meteor.isServer) {
       ],
     });
   });
-
 
   const LISTS_METHODS = _.map([
     taskRemove,

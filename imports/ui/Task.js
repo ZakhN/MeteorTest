@@ -101,8 +101,10 @@ class Task extends Component {
 export default withTracker(() => {
   Meteor.subscribe('lists');
   Meteor.subscribe('tasks');
+ 
   return {
     lists: Lists.find().fetch(),
     // tasks: Tasks.find().fetch(),
+ 
   };
 })(Task);

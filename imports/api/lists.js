@@ -9,6 +9,8 @@ import SimpleSchema from 'simpl-schema';
 
 export const Lists = new Mongo.Collection('lists');
 
+import { Tasks } from './tasks';
+
 /**
  * lists.remove
  * @const delete a list
@@ -22,16 +24,15 @@ const listRemove = new ValidatedMethod({
     if (!this.userId) throw new Meteor.Error('Access denied');
 
     const list = Lists.findOne(listId);
-    if (!list) throw new Meteor.Error('List do not exist');
   
-    if (this.userId !== list.ownerId) throw new Meteor.Error('Access denied');
-
+    if (!list) throw new Meteor.Error('List do not exist');
+    if ((list.members.find(l => ((l.userId === this.userId) && (l.role === 'admin')))).userId ? false : true ) throw new Meteor.Error('Access denied');
+   
     const isListRemoved = Lists.remove(listId);
 
     if (isListRemoved) {
-      if (listId === Meteor.user().profile.selectedListId) {
-        Meteor.users.update(this.userId, { $unset:  { 'profile.selectedListId': 1 } });
-      }
+        Meteor.users.update({ selectedListId: list._id }, { $unset:  { 'selectedListId': 1 } });
+        Tasks.remove({ listId: listId });
     }
   }
 });
@@ -52,7 +53,7 @@ const listUpdate = new ValidatedMethod({
     const list = Lists.findOne({_id: listId});
     if (!list) throw new Meteor.Error('List do not exist');
 
-    if (this.userId !== list.ownerId) throw new Meteor.Error('Access denied');
+    if ((list.members.find(l => ((l.userId === this.userId) && (l.role === 'admin')))).userId ? false : true ) throw new Meteor.Error('Access denied');
 
     Lists.update(listId, { $set: { name }});
   }
@@ -71,13 +72,57 @@ const listSelect= new ValidatedMethod({
     if (!this.userId) throw new Meteor.Error('Access denied');
 
     const list = Lists.findOne({_id: listId});
+
+    // console.log(!list);
+
     if (!list) throw new Meteor.Error('List do not exist');
 
-    if (this.userId !== list.ownerId) throw new Meteor.Error('Access denied');
-    
-    Meteor.users.update(this.userId, { $set:  { 'profile.selectedListId': listId } });
+    if ((list.members.find(l => ((l.userId === this.userId) && (l.role === 'admin')))).userId ? false : true ) throw new Meteor.Error('Access denied');
+
+    Meteor.users.update(this.userId, { $set:  { 'selectedListId': listId } });
     Lists.update({_id: { $ne: listId } }, { $set: { selected: false } }, { multi: true });
     Lists.update( listId, { $set: { selected: true } });
+  }
+});
+
+/**
+ * lists.addUser
+ * @const add a user to a list
+ */
+const addListUser= new ValidatedMethod({
+  name: 'lists.users.add',
+  validate: new SimpleSchema({
+     listId: { type: String },
+     userId: { type: String },
+     role: { type: String, allowedValues: ['admin', 'viewer'] },
+  }).validator(),
+  run({ listId, userId, role }) {
+    if (!this.userId) throw new Meteor.Error('Access denied');
+
+    const list = Lists.findOne(listId);
+    if (!list) throw new Meteor.Error('List do not exist');
+
+    if (!list.members.find(({ userId, role }) => userId === this.userId && role === 'admin')) throw new Meteor.Error('Access denied');
+    // if ((list.members.find(l => ((l.userId === this.userId) && (l.role === 'admin')))).userId ? false : true ) throw new Meteor.Error('You have not that list');
+    
+    Lists.update(listId, { $addToSet:  { members: { role, userId } } });
+  }
+});
+
+const removeListUser= new ValidatedMethod({
+  name: 'lists.users.remove',
+  validate: new SimpleSchema({
+     listId: { type: String },
+     userId: { type: String },
+  }).validator(),
+  run({ listId, userId}) {
+    if (!this.userId) throw new Meteor.Error('Access denied');
+
+    const list = Lists.findOne(listId);
+    if (!list) throw new Meteor.Error('List do not exist');
+
+    Lists.update(listId, { $pull: { 'members.userId': userId }});
+
   }
 });
 
@@ -97,6 +142,12 @@ const listCreate = new ValidatedMethod({
       name: listName,
       ownerId: this.userId,
       createdAt: new Date(),
+      members: [
+        {
+          userId: this.userId,
+          role: 'admin',
+        }
+      ]
     });
 
     return list;
@@ -104,16 +155,25 @@ const listCreate = new ValidatedMethod({
 });
 
 if (Meteor.isServer) {
-  Meteor.publish('lists', function listsPublication() {
-    return Lists.find({ ownerId: this.userId });
-  });
 
-  Meteor.publish('list', function listsPublication(_id) {
-    return Lists.find({
-      _id,
-      ownerId: this.userId,
+  Meteor.publish('lists', function listsPublication() {
+
+    return Lists.find({ 
+      'members.userId': this.userId,
     });
   });
+
+  Meteor.publish('user', function() {
+
+    return Meteor.users.find({
+      _id: this.userId
+    }, {
+      fields: {
+        selectedListId: 1,
+      },
+    });
+  });
+
 
   const LISTS_METHODS = _.map([
     listCreate,

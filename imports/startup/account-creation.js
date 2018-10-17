@@ -6,16 +6,19 @@ Accounts.onCreateUser( (options, user) => {
     ownerId: user._id,
     selected: true,
     createdAt: new Date(),
+    members: [
+      {
+        role: 'admin',
+        userId: user._id,
+      }
+    ]
   });
-  console.log(user);
 
   let newUser = {
-    profile: {
-      selectedListId: listId,
-    }
+    selectedListId: listId,
   };
-
-   if  (!user.username) user.username = user.services.google.name;
+  
+  if  (!user.username) user.username = user.services.google.name;
 
   newUser = Object.assign(user, newUser);
 
