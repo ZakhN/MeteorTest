@@ -153,6 +153,8 @@ const taskInsert = new ValidatedMethod({
       listId,
     };
 
+  
+
     if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
 
     if (Meteor.isServer && sendToCalendar && codePhrase.length > 2) {

@@ -34,7 +34,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       this.handleListName = this.handleListName.bind(this);
     }
 
-    componentDidUpdate(prevProps, prevState) {
+    componentDidUpdate(prevProps) {
       if (!prevProps.currentUser && this.props.currentUser) {
         this.setState({ hideChecked: this.props.currentUser && this.props.currentUser.profile && this.props.currentUser.profile.hideChecked });
         // this.setState({ selectedList: this.this.props.currentUser && this.props.currentUser.profile &&  this.props.currentUser.profile.selectedListId});
