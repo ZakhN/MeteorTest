@@ -2,18 +2,19 @@ import nodemailer from 'nodemailer';
 
 /**
  * mailer
- * @const send an email to selecrtd email 
+ * @const send an mail to selected email 
  */
 
- const mailer = () => {
-  const transporter = nodemailer.createTransport('smtp://nickolay@milkandcartoons.com:nickolay@smtp.mailgun.org:587');
-
-  const mailOptions = {
+ const mailer = ({todaysTasks, checkedTasks}) => {
+  const transporter = nodemailer.createTransport('');
+  let mailOptions = {
     from: 'sender@email.com', // sender address
     to: 'nzaharov86@gmail.com', // list of receivers
     subject: 'Subject of your email', // Subject line
-    html: '<p>Your html here</p>'// plain text body
+    html:'todaysTasks '+ todaysTasks+' '+'checkedTasks '+checkedTasks // plain text body
   };
+  
+  console.log('EMAIL HAVE BEEN SENT');
 
   transporter.sendMail(mailOptions, function (err, info) {
     if(err)

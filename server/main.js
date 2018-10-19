@@ -4,10 +4,8 @@ import '../imports/api/tasks';
 import '../imports/api/lists';
 
 import '../imports/startup/account-creation';
-import schedule from '../imports/integrations/schedule';
-
+import cron from '../imports/startup/cron-reports';
 
 Meteor.startup(() => {
-  schedule();
+  cron.start()
 });
-

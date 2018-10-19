@@ -35,7 +35,12 @@ export default class Lists extends Component {
   }
 
   selectThisList(){
-    Meteor.call('lists.select', { listId: this.props.list._id });
+    Meteor.call('lists.select', { listId: this.props.list._id }, (error) => {
+      if (error && error.error ) {
+        // this.toglePopover();
+         console.log('ERRR,', error);
+      }
+  });
   }
 //this.props.list.ownerId === Meteor.user()._id || this.props.list.members.find(l => l.userId === this.userId ).userId === Meteor.user()._id
   render() {
@@ -52,8 +57,10 @@ export default class Lists extends Component {
         transitionAppearTimeout={5000}
       >
         {  this.props.list.members.find(u => u.userId === Meteor.user()._id) ?
-          <li className={taskClassName}>
+          <li className={taskClassName} id="place">
             <ButtonGroup>
+
+            { this.props.list.members.find(u => u.userId === Meteor.user()._id && u.role ==='admin') ?
               <Button
                 size="sm"
                 color="primary"
@@ -61,6 +68,10 @@ export default class Lists extends Component {
               >
                 Select
               </Button>
+              : ''
+            } 
+
+            { this.props.list.members.find(u => u.userId === Meteor.user()._id && u.role ==='admin') ?
               <Button
                 id="Update"
                 size="sm"
@@ -69,8 +80,11 @@ export default class Lists extends Component {
               >
                 Update
               </Button>
-              <Popover placement="bottom" isOpen={this.state.popover} target="Update" toggle={this.toglePopover}>
-                <PopoverBody> New list name :
+              : ''
+            }
+           
+              <Popover placement="auto-start" isOpen={this.state.popover} target="place" toggle={this.toglePopover}>
+                <PopoverBody> New name :
                   <Form
                     onSubmit={this.onSubmit}
                   >
@@ -83,16 +97,26 @@ export default class Lists extends Component {
                   </Form>
                 </PopoverBody>
               </Popover>
+              
             </ButtonGroup>{' '}
+
             <Badge>
-              <strong> Name:{' '} </strong> {' '} {this.state.listName}
+              <strong> Name:{' '} </strong> {' '} {this.state.listName} {' '} 
             </Badge>
+
+            <Badge>
+              Owner name:{' '} {this.props.list.ownername}
+            </Badge>
+
+          { this.props.list.members.find(u => u.userId === Meteor.user()._id && u.role ==='admin') ?
             <button
               className="delete"
               onClick={this.deleteThisList.bind(this)}
             >
               x
             </button>
+            : ''
+          }
           </li> : '' }
       </ReactCSSTransitionGroup>
     );

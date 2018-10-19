@@ -26,7 +26,9 @@ const taskRemove = new ValidatedMethod({
     if (!task) throw new Meteor.Error('Task does not exist');
 
     if (task.private && task.ownerId !== this.userId) {
-      throw new Meteor.Error('not-authorized');
+      if (!this.isSimulation) {
+        throw new Meteor.Error('Access denied');
+      }
     }
 
     if (task.calendarEventId && Meteor.isServer) {
@@ -72,7 +74,9 @@ const taskSetPrivate = new ValidatedMethod({
     if (!task) new Meteor.Error('Task do not exist');
 
     if (task.ownerId !== this.userId) {
-      throw new Meteor.Error('not-authorized');
+      if (!this.isSimulation) {
+        throw new Meteor.Error('Access denied');
+      }
     }
     Tasks.update(taskId, { $set: { private: setToPrivate } });
   }
@@ -93,7 +97,11 @@ const taskSetChecked = new ValidatedMethod({
 
     const task = Tasks.findOne({_id: taskId});
 
-    if (this.userId !== task.ownerId) throw new Meteor.Error('Access denied');
+    if (this.userId !== task.ownerId){
+      if (!this.isSimulation) {
+        throw new Meteor.Error('Access denied');
+      }
+    }
 
     Tasks.update(taskId, { $set: { checked: setChecked } });
   }
@@ -111,7 +119,7 @@ const taskInsert = new ValidatedMethod({
     listId: { type: String },
     // listId: { type: String },
   }).validator(),
-   async run({ text, sendToCalendar, listId }) {
+    async run({ text, sendToCalendar, listId }) {
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
@@ -121,6 +129,7 @@ const taskInsert = new ValidatedMethod({
       'members.role': 'admin',
       'members.userId': this.userId,
     });
+
     if (!list) throw new Meteor.Error('Access denied');
     // console.log(list);
     //#region RegExps
@@ -151,14 +160,16 @@ const taskInsert = new ValidatedMethod({
       ownerId: this.userId,
       username: Meteor.user().username,
       listId,
+      private: false,
     };
 
-  
+    // const ass = Tasks.findOne({ 'createdAt.date': '17' })
+    // console.log(ass);
 
     if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
 
     if (Meteor.isServer && sendToCalendar && codePhrase.length > 2) {
-    
+
       import * as GoogleCalendar from '../integrations/google/calendar';
 
       let event = {
@@ -187,13 +198,33 @@ const taskInsert = new ValidatedMethod({
 
 
 if (Meteor.isServer) {
+  const userListIds = [];
+
+  Lists.find(
+    { 'members.userId': this.userId },
+    { fields: {
+        _id: 1,
+      }
+    }
+  ).map(l => userListIds.push(l._id));
+
   Meteor.publish('tasks', function tasksPublication() {
-    return Tasks.find({
+    const userListIds = _.map(
+      Lists.find(
+        { 'members.userId': this.userId },
+        { fields: { _id: 1 } },
+      ).fetch(),
+      '_id',
+    );
+
+    const tasks =  Tasks.find({
       $or: [
-        { private: { $ne: true } },
-        { ownerId: this.userId },
-      ],
+        { private: true, listId: { $in: userListIds } },
+        { private: false },
+      ]
     });
+
+    return tasks;
   });
 
   const LISTS_METHODS = _.map([

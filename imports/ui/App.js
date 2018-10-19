@@ -43,6 +43,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 
     handleSubmit(event) {
       event.preventDefault();
+      if (this.props.currentUser && !this.props.currentUser.selectedListId) throw new Error('List isn`t select');
+
       Meteor.call('tasks.insert', { text: this.state.todoText, sendToCalendar: this.state.sendToCalendar, listId: this.props.currentUser ? this.props.currentUser.selectedListId : '' }, 
         (error) => {
           if (error && error.error ) {
@@ -122,8 +124,11 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     }
   
   render() {
-      // console.log('render',this.props.currentUser ? this.props.currentUser.selectedListId : '');
+    const { loading } = this.props;
 
+    if (loading) return null;
+    
+    // console.log(this.props);
     return (
     <ReactCSSTransitionGroup
       transitionName="example"
@@ -224,14 +229,15 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 }
 
 export default withTracker(() => {
-  Meteor.subscribe('tasks');
-  Meteor.subscribe('lists');
-  Meteor.subscribe('user');
+  const tasksSub = Meteor.subscribe('tasks');
+  const listsSub = Meteor.subscribe('lists');
+  const userSub = Meteor.subscribe('user');
 
   return {
     tasks: Tasks.find({}, { sort: { createdAt: -1 } }).fetch(),
     lists: Lists.find({}, { sort: { createdAt: -1 } }).fetch(),
     incompleteCount: Tasks.find({ checked: { $ne: true } }).count(),
     currentUser: Meteor.user(),
+    loading: !tasksSub.ready() || !listsSub.ready() || !userSub.ready()
   };
 })(App);

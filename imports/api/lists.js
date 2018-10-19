@@ -26,7 +26,12 @@ const listRemove = new ValidatedMethod({
     const list = Lists.findOne(listId);
   
     if (!list) throw new Meteor.Error('List do not exist');
-    if ((list.members.find(l => ((l.userId === this.userId) && (l.role === 'admin')))).userId ? false : true ) throw new Meteor.Error('Access denied');
+
+    if (!list.members.find(({ userId, role }) => userId === this.userId && role === 'admin')) {
+      if (!this.isSimulation) {
+        throw new Meteor.Error('Access denied');
+      }
+    } 
    
     const isListRemoved = Lists.remove(listId);
 
@@ -51,9 +56,14 @@ const listUpdate = new ValidatedMethod({
     if (!this.userId) throw new Meteor.Error('Access denied');
 
     const list = Lists.findOne({_id: listId});
+    
     if (!list) throw new Meteor.Error('List do not exist');
 
-    if ((list.members.find(l => ((l.userId === this.userId) && (l.role === 'admin')))).userId ? false : true ) throw new Meteor.Error('Access denied');
+    if (!list.members.find(({ userId, role }) => userId === this.userId && role === 'admin')) {
+      if (!this.isSimulation) {
+        throw new Meteor.Error('Access denied');
+      }
+    } 
 
     Lists.update(listId, { $set: { name }});
   }
@@ -77,7 +87,11 @@ const listSelect= new ValidatedMethod({
 
     if (!list) throw new Meteor.Error('List do not exist');
 
-    if ((list.members.find(l => ((l.userId === this.userId) && (l.role === 'admin')))).userId ? false : true ) throw new Meteor.Error('Access denied');
+    if (!list.members.find(({ userId, role }) => userId === this.userId && role === 'admin')) {
+      if (!this.isSimulation) {
+        throw new Meteor.Error('Access denied');
+      }
+    } 
 
     Meteor.users.update(this.userId, { $set:  { 'selectedListId': listId } });
     Lists.update({_id: { $ne: listId } }, { $set: { selected: false } }, { multi: true });
@@ -86,7 +100,7 @@ const listSelect= new ValidatedMethod({
 });
 
 /**
- * lists.addUser
+ * lists.users.add
  * @const add a user to a list
  */
 const addListUser= new ValidatedMethod({
@@ -102,13 +116,21 @@ const addListUser= new ValidatedMethod({
     const list = Lists.findOne(listId);
     if (!list) throw new Meteor.Error('List do not exist');
 
-    if (!list.members.find(({ userId, role }) => userId === this.userId && role === 'admin')) throw new Meteor.Error('Access denied');
+    if (!list.members.find(({ userId, role }) => userId === this.userId && role === 'admin')) {
+      if (!this.isSimulation) {
+        throw new Meteor.Error('Access denied');
+      }
+    } 
     // if ((list.members.find(l => ((l.userId === this.userId) && (l.role === 'admin')))).userId ? false : true ) throw new Meteor.Error('You have not that list');
     
     Lists.update(listId, { $addToSet:  { members: { role, userId } } });
   }
 });
 
+/**
+ * lists.users.remove
+ * @const remove a user from a list
+ */
 const removeListUser= new ValidatedMethod({
   name: 'lists.users.remove',
   validate: new SimpleSchema({
@@ -136,35 +158,44 @@ const listCreate = new ValidatedMethod({
      listName: { type: String },
   }).validator(),
   run({ listName }) {
+
     if (!this.userId) throw new Meteor.Error('Access denied');
 
-    const list = Lists.insert({
+    const list = {
       name: listName,
       ownerId: this.userId,
+      ownername: Meteor.user().username,
       createdAt: new Date(),
       members: [
         {
           userId: this.userId,
+          userName: Meteor.user().username,
           role: 'admin',
         }
       ]
-    });
+    };
+    
+    if (!Meteor.user().selectedListId ) {
+      list.selected = true;
 
-    return list;
+      insertedListId = Lists.insert(list);
+
+      Meteor.users.update({ _id: Meteor.user()._id }, { $set: { selectedListId: insertedListId } });
+    }
+   
+    return insertedListId;
   }
 });
 
 if (Meteor.isServer) {
 
   Meteor.publish('lists', function listsPublication() {
-
     return Lists.find({ 
       'members.userId': this.userId,
     });
   });
 
   Meteor.publish('user', function() {
-
     return Meteor.users.find({
       _id: this.userId
     }, {

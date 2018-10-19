@@ -84,7 +84,7 @@ class Task extends Component {
             <Badge color="secondary">{' '}List:{' '}
               {this.props.lists.map(list => list._id === this.props.task.listId ? list.name  : '')}
             </Badge>
-              <strong>  <Badge> {this.props.task.username}:{' '} </Badge>  </strong>
+              <strong>  <Badge> {this.props.task.username} : {' '} </Badge>  </strong>
               {textNew}
               <strong className="text-warning">  {(this.props.task.dueDate) ? <Badge> dueDate: </Badge> : ''}  </strong>
               {this.props.task.dueDate

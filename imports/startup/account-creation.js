@@ -3,6 +3,7 @@ import { Lists } from '../api/lists';
 Accounts.onCreateUser( (options, user) => {
   const listId =  Lists.insert({
     name: 'My Tasks',
+    username: Meteor.user().username,
     ownerId: user._id,
     selected: true,
     createdAt: new Date(),
