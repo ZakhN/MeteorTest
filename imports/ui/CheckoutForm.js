@@ -8,9 +8,11 @@ class CheckoutForm extends Component {
   }
 
   async submit() {
-    let {token} = await this.props.stripe.createToken({name: "Name"});
-    console.log(token);
-    Meteor.call('stripe.charge', { token: token });
+    let { token } = await this.props.stripe.createToken();
+    
+    console.log(this.props);
+
+    Meteor.call('stripe.charge', { token: token});
   }
 
   render() {

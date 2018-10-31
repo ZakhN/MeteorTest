@@ -52,7 +52,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
      
       const task = {
         text: this.state.todoText, 
-        sendToCalendar: this.state.sendToCalendar, 
+        sendToCalendar: this.state.sendToCalendar,
         listId: this.props.currentUser ? this.props.currentUser.selectedListId : '' 
       };
     
@@ -84,7 +84,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         });
       });
 
-      Meteor.call('tasks.insert', task, 
+      Meteor.call('tasks.insert', task,
       (error) => {
         if (error && error.error ) {
           this.toglePopover();
@@ -169,6 +169,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     }
   
   render() {
+    // console.log(this.props);
     const { loading } = this.props;
 
     if (loading) return null;
@@ -184,7 +185,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       { 
         this.props.currentUser.listsAllow === 0 || this.props.currentUser.tasksAllow === 0 ? 
         <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
-          <div className="stripe">
+          <div className="example">
           <h1>React Stripe Elements Example</h1>
           <Elements>
             <CheckoutForm />

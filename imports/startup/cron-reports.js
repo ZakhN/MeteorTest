@@ -33,8 +33,6 @@ const cron = new CronJob(Meteor.settings.cronStartupFrequency, Meteor.bindEnviro
     sendEmail({ email: 'zakh@milkandcartoons.com', report: result });
 
   });
-
-  
 }, null, true));
 
 export default cron;

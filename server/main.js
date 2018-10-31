@@ -3,7 +3,9 @@ import dotenv from 'dotenv';
 
 import '../imports/api/tasks';
 import '../imports/api/lists';
+import '../imports/api/stripe';
 import '../imports/startup/account-creation';
+
 
 import cron from '../imports/startup/cron-reports';
 

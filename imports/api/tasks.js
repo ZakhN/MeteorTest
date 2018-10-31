@@ -132,8 +132,8 @@ const taskInsert = new ValidatedMethod({
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
-    console.log(Meteor.settings.cronStartupFrequency);
-    console.log('imageUrl----------->',imageurl);
+    
+    // console.log('imageUrl----------->',imageurl);
 
     const list = Lists.findOne({
       _id: listId,
@@ -213,13 +213,12 @@ const taskInsert = new ValidatedMethod({
       task.calendarEventId = createdEvent.id;
     }
 
-
     if (Meteor.users.findOne({ _id: Meteor.userId() }).tasksAllow > 0) {
 
       Meteor.users.update(Meteor.userId(), { $inc: { 'tasksAllow': -1 } });
+      
       Tasks.insert(task);
     } else throw new Meteor.Error('Your tasks have been over')
-
   },
 });
 
