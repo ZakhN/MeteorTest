@@ -19,11 +19,13 @@ export default class Lists extends Component {
   }
 
   handleChangeListNmae(e){
+    e.preventDefault();
     this.setState({ newListName: e.target.value });
   }
 
   onSubmit(){
     Meteor.call('lists.update', { name: this.state.newListName, listId: this.props.list._id });
+    // mixpanel.track('List name changed');
   }
 
   toglePopover(){
@@ -32,6 +34,7 @@ export default class Lists extends Component {
 
   deleteThisList(){
     Meteor.call('lists.remove', { listId: this.props.list._id });
+    // mixpanel.track('List deleted');
   }
 
   selectThisList(){
@@ -40,7 +43,8 @@ export default class Lists extends Component {
         // this.toglePopover();
          console.log('ERRR,', error);
       }
-  });
+    });
+    // mixpanel.track('List selected');
   }
 //this.props.list.ownerId === Meteor.user()._id || this.props.list.members.find(l => l.userId === this.userId ).userId === Meteor.user()._id
   render() {

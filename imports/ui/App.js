@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import { withTracker } from 'meteor/react-meteor-data';
-import {Form, FormGroup, Input, Popover,  PopoverBody,  } from 'reactstrap';
+import { Form, FormGroup, Input, Popover,  PopoverBody } from 'reactstrap';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
+import {Elements, StripeProvider} from 'react-stripe-elements';
 
 import { Meteor } from 'meteor/meteor';
 import { Tasks } from '../api/tasks.js';
@@ -9,6 +10,7 @@ import { Lists } from '../api/lists.js';
 
 import Task from './Task.js';
 import List from './Lists.js';
+import CheckoutForm from './CheckoutForm';
 import AccountsUIWrapper from './AccountsUIWrapper.js';
  
   class App extends Component {
@@ -22,6 +24,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         listId: '',
         listName: '',
         popover: false,
+        modal: true,
       };
 
       this.toggleHideCompleted = this.toggleHideCompleted.bind(this);
@@ -41,30 +44,70 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       }
     }
 
-    handleSubmit(event) {
+    async handleSubmit(event) {
       event.preventDefault();
       if (this.props.currentUser && !this.props.currentUser.selectedListId) throw new Error('List isn`t select');
 
-      Meteor.call('tasks.insert', { text: this.state.todoText, sendToCalendar: this.state.sendToCalendar, listId: this.props.currentUser ? this.props.currentUser.selectedListId : '' }, 
-        (error) => {
-          if (error && error.error ) {
-            this.toglePopover();
-             console.log('ERRR,', error);
-          }
+      const uploader = new Slingshot.Upload("myFileUploads");
+     
+      const task = {
+        text: this.state.todoText, 
+        sendToCalendar: this.state.sendToCalendar, 
+        listId: this.props.currentUser ? this.props.currentUser.selectedListId : '' 
+      };
+    
+      let inputFile = document.getElementById('avatar').files;
+      
+      inputFile[0] && await new Promise((resolve, reject) => {
+        uploader.send(inputFile[0], (error, downloadUrl) => {
+          if (error) {
+            console.error('Error uploading', /* uploader.xhr.response */ error);
+            alert (error);
+            reject(err);
+          } else {
+            task.imageurl = downloadUrl;
+          } 
+          resolve();
+        });
       });
+
+      inputFile[1] && await new Promise((resolve, reject) => {
+        uploader.send(inputFile[1], (error, downloadUrl) => {
+          if (error) {
+            console.error('Error uploading', /* uploader.xhr.response */ error);
+            alert (error);
+            reject(err);
+          } else {
+            task.imageurl1 = downloadUrl;
+          } 
+          resolve();
+        });
+      });
+
+      Meteor.call('tasks.insert', task, 
+      (error) => {
+        if (error && error.error ) {
+          this.toglePopover();
+          console.log('ERRR,', error);
+        }
+      });
+      
       this.setState({todoText:''});
+      // mixpanel.track('Task added');
     }
 
-    handleSubmitList(event){
+    handleSubmitList(event) {
       event.preventDefault();
       Meteor.call('lists.create', { listName: this.state.listName });
       this.setState({ listName:'' });
+      // mixpanel.track('List added');
     }
 
     handleListName() {
-        if (this.props.lists) {
-          let list = this.props.lists.find( l => l._id === this.props.currentUser.selectedListId);
-          return (list && list.name);
+      if (this.props.lists) {
+        let list = this.props.lists.find( l => l._id === this.props.currentUser.selectedListId);
+        // mixpanel.track('Listname changed');
+        return (list && list.name);
       }
     }
 
@@ -83,6 +126,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     toggleHideCompleted() {
       Meteor.call('tasks.hideChecked', { isCheked:!this.state.hideChecked });
       this.setState({ hideChecked: !this.state.hideChecked });
+      // mixpanel.track('Conpleated tasks hided');
     }
 
     toggleSendTocalendar() {
@@ -90,6 +134,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         sendToCalendar: !this.state.sendToCalendar,
       });
     }
+    
     renderLists() {
       return this.props.lists.map((list) => {
         return (
@@ -127,23 +172,34 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     const { loading } = this.props;
 
     if (loading) return null;
-    
-    // console.log(this.props);
     return (
-    <ReactCSSTransitionGroup
-      transitionName="example"
-      transitionEnterTimeout={5000}
-      transitionLeaveTimeout={5000}
-      transitionAppear={true}
-      transitionAppearTimeout={5000}
-    >
-      <div className="container">
+      <ReactCSSTransitionGroup
+        transitionName="example"
+        transitionEnterTimeout={5000}
+        transitionLeaveTimeout={5000}
+        transitionAppear={true}
+        transitionAppearTimeout={5000}
+      >
 
-        <div className="tasks-container">
-          <header>
-            <h1>Todo List ({this.props.incompleteCount})</h1>
-            <label className="hide-completed">
+      { 
+        this.props.currentUser.listsAllow === 0 || this.props.currentUser.tasksAllow === 0 ? 
+        <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
+          <div className="stripe">
+          <h1>React Stripe Elements Example</h1>
+          <Elements>
+            <CheckoutForm />
+          </Elements>
+          </div>
+        </StripeProvider>
+        : ''
+      }
 
+        <div className="container">
+          <div className="tasks-container">
+            <header>
+              <h1>Todo List ({this.props.incompleteCount})</h1>
+
+              <label className="hide-completed">
                 <Input
                   type="checkbox"
                   readOnly
@@ -151,76 +207,83 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
                   onClick={this.toggleHideCompleted}
                 />
                 Hide Completed Tasks
+              </label>
 
-            </label>
+              <label className="hide-completed">
+                <Form>
+                  <Input
+                    type="checkbox"
+                    className = "send-to-calendar"
+                    readOnly
+                    checked={this.state.sendToCalendar}
+                    onClick={this.toggleSendTocalendar}
+                  />
+                  Add to calendar
+                </Form>
+              </label>
+            <AccountsUIWrapper />
+            
+            {this.props.currentUser
+              ? <Form 
+                  className="new-task" 
+                  onSubmit={this.handleSubmit} 
+                >
+                  <FormGroup>
+                    <Input
+                      id="taskText"
+                      type="text"
+                      ref="textInput"
+                      placeholder="Type to add new tasks"
+                      value={this.state.todoText}
+                      onChange={this.handleChange}
+                    />
+                    <input 
+                      type="file"
+                      id="avatar" 
+                      name="avatar"
+                      accept="image/png, image/jpeg"
+                      multiple
+                    />
+                    <Popover placement="bottom" isOpen={this.state.popover} target="taskText" toggle={this.toglePopover}>
+                      <PopoverBody>
+                        You should select task-list before insert a new task{' '}
+                      </PopoverBody>
+                    </Popover>
+                  </FormGroup>
+                </Form> 
+              : ''  
+            }
+            </header>
 
-            <label className="hide-completed">
-              <Form>
-                <Input
-                  type="checkbox"
-                  className = "send-to-calendar"
-                  readOnly
-                  checked={this.state.sendToCalendar}
-                  onClick={this.toggleSendTocalendar}
-                />
-                Add to calendar
-              </Form>
-            </label>
-          <AccountsUIWrapper />
-          
-          {this.props.currentUser
-            ? <Form 
-                className="new-task" 
-                onSubmit={this.handleSubmit} 
-              >
-                <FormGroup>
-                  <Input
-                    id="taskText"
-                    type="text"
-                    ref="textInput"
-                    placeholder="Type to add new tasks"
-                    value={this.state.todoText}
-                    onChange={this.handleChange}
-                  />
-                  <Popover placement="bottom" isOpen={this.state.popover} target="taskText" toggle={this.toglePopover}>
-                    <PopoverBody>
-                      You should select task-list before insert a new task{' '}
-                    </PopoverBody>
-                  </Popover>
-                </FormGroup>
-              </Form> 
-            : ''  
-          }
-          </header>
-          <ul>
-            {this.renderTasks()}
-          </ul> 
-        </div>
-        {this.props.currentUser 
-        ? <div className="lists-container">
-            <h1 className = "list-head"> Current list:{' '}
-            { this.handleListName() }
-            </h1>
-            { this.props.currentUser ?
-              <Form 
-                className="new-list" 
-                onSubmit={this.handleSubmitList} 
-              >
-                <FormGroup>
-                  <Input
-                    type="text"
-                    ref="textInput"
-                    placeholder="Type to add new list"
-                    value={this.state.listName}
-                    onChange={this.handleChangeList}
-                  />
-                </FormGroup>
-              </Form> : '' }
 
             <ul>
-              { this.renderLists() }
-            </ul>
+              {this.renderTasks()}
+            </ul> 
+          </div>
+          {this.props.currentUser
+          ? <div className="lists-container">
+              <h1 className = "list-head"> Current list:{' '}
+              { this.handleListName() }
+              </h1>
+              { this.props.currentUser ?
+                <Form 
+                  className="new-list" 
+                  onSubmit={this.handleSubmitList}
+                >
+                  <FormGroup>
+                    <Input
+                      type="text"
+                      ref="textInput"
+                      placeholder="Type to add new list"
+                      value={this.state.listName}
+                      onChange={this.handleChangeList}
+                    />
+                  </FormGroup>
+                </Form> : '' }
 
+              <ul>
+                { this.renderLists() }
+              </ul>
           </div> : ''}
         </div>
       </ReactCSSTransitionGroup>

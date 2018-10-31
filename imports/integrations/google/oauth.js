@@ -7,7 +7,7 @@ export default GoogleOAuth = ({ userId }) => {
   const accessToken = user.services && user.services.google && user.services.google.accessToken;
   if (!accessToken) throw new Error('User does not have Google account');
 
-  const oauth2Client = new google.auth.OAuth2('706668132829-8jvq7kj0burvehenqdt4on94ac8ganv6.apps.googleusercontent.com', 'Zc2Z5kVeo7zg0DkkwRMaQLmG',  'http://localhost:3000/_oauth/google');
+  const oauth2Client = new google.auth.OAuth2(process.env.OAUTH_CLIENT_ID, process.env.OAUTH_CLIENT_SECRET,  'http://localhost:3000/_oauth/google');
   oauth2Client.credentials = { access_token: accessToken };
 
   return oauth2Client;

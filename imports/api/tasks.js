@@ -6,6 +6,7 @@ import { DDPRateLimiter } from 'meteor/ddp-rate-limiter'
 
 import _ from 'lodash';
 import SimpleSchema from 'simpl-schema';
+// import stripe from "stripe";
 
 import { Lists } from './lists';
 
@@ -19,8 +20,9 @@ const taskRemove = new ValidatedMethod({
   name: 'tasks.remove',
   validate: new SimpleSchema({
     taskId: { type: String, regEx: SimpleSchema.RegEx.Id },
+    listId: { type: String },
   }).validator(),
-  run({ taskId }) {
+  run({ taskId, listId }) {
     const task = Tasks.findOne(taskId);
 
     if (!task) throw new Meteor.Error('Task does not exist');
@@ -31,17 +33,22 @@ const taskRemove = new ValidatedMethod({
       }
     }
 
-    if (task.calendarEventId && Meteor.isServer) {
-     /* eslint-disable */
+    const list = Lists.findOne(listId);
+  
+    if (list && task.calendarEventId && Meteor.isServer) {
+      /* eslint-disable */
       import * as GoogleCalendar from '../integrations/google/calendar'; // eslint-disable-line
-    /* eslint-enable */
+      /* eslint-enable */
+
       GoogleCalendar.deleteEvent({
         eventId: task.calendarEventId,
-        userId: this.userId,
+        userId: list.ownerId,
       });
     }
 
-    Tasks.remove(taskId);
+    const isTaskRemove = Tasks.remove(taskId);
+
+    if (isTaskRemove) Meteor.users.update(Meteor.userId(), { $inc: { 'tasksAllow': +1 } });
   }
 });
 
@@ -78,6 +85,7 @@ const taskSetPrivate = new ValidatedMethod({
         throw new Meteor.Error('Access denied');
       }
     }
+
     Tasks.update(taskId, { $set: { private: setToPrivate } });
   }
 });
@@ -114,15 +122,18 @@ const taskSetChecked = new ValidatedMethod({
 const taskInsert = new ValidatedMethod({
   name: 'tasks.insert',
   validate: new SimpleSchema({
+    imageurl: { type: String, required: false },
+    imageurl1: { type: String, required: false },
     text: { type: String },
     sendToCalendar: { type: Boolean },
     listId: { type: String },
-    // listId: { type: String },
   }).validator(),
-    async run({ text, sendToCalendar, listId }) {
+    async run({ text, sendToCalendar, listId, imageurl, imageurl1 }) {
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
+
+    console.log('imageUrl----------->',imageurl);
 
     const list = Lists.findOne({
       _id: listId,
@@ -131,7 +142,19 @@ const taskInsert = new ValidatedMethod({
     });
 
     if (!list) throw new Meteor.Error('Access denied');
-    // console.log(list);
+
+    if (Meteor.isServer) {
+
+      const stripe = require("stripe")("sk_test_9X9pmPpxO0kViYpU2vPsAK8w");
+  
+      const charge = stripe.charges.create({
+        amount: 999,
+        currency: 'usd',
+        source: 'tok_visa',
+        receipt_email: 'jenny.rosen@example.com',
+      });
+    }
+
     //#region RegExps
     let codePhrase = '';
     let codePhraseTime = '';
@@ -161,10 +184,9 @@ const taskInsert = new ValidatedMethod({
       username: Meteor.user().username,
       listId,
       private: false,
+      imageurl,
+      imageurl1
     };
-
-    // const ass = Tasks.findOne({ 'createdAt.date': '17' })
-    // console.log(ass);
 
     if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
 
@@ -187,15 +209,19 @@ const taskInsert = new ValidatedMethod({
         event,
         userId: list.ownerId,
       });
-
-      // console.log(createdEvent);
       
       task.calendarEventId = createdEvent.id;
     }
-    Tasks.insert(task);
+
+
+    if (Meteor.users.findOne({ _id: Meteor.userId() }).tasksAllow > 0) {
+
+      Meteor.users.update(Meteor.userId(), { $inc: { 'tasksAllow': -1 } });
+      Tasks.insert(task);
+    } else throw new Meteor.Error('Your tasks have been over')
+
   },
 });
-
 
 if (Meteor.isServer) {
   const userListIds = [];
