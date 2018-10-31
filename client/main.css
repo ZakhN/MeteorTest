@@ -187,3 +187,8 @@ input .send-to-calendar {
 .list-head{
   padding: 33px 5px 13px 15px;;
 }
+
+.stripe{
+  align-self: center;
+  width: 50%;
+}

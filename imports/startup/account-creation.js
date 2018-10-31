@@ -1,9 +1,8 @@
 import { Lists } from '../api/lists';
 
 Accounts.onCreateUser( (options, user) => {
-  const listId =  Lists.insert({
+  const list = {
     name: 'My Tasks',
-    username: Meteor.user().username,
     ownerId: user._id,
     selected: true,
     createdAt: new Date(),
@@ -13,15 +12,21 @@ Accounts.onCreateUser( (options, user) => {
         userId: user._id,
       }
     ]
-  });
+  };
+
+  if (!user.username) user.username = user.services.google.name;
+  
+  list.ownername = user.username;
+
+  const listId = Lists.insert(list);
 
   let newUser = {
     selectedListId: listId,
+    tasksAllow: 10,
+    listsAllow: 3,
   };
-  
-  if  (!user.username) user.username = user.services.google.name;
 
   newUser = Object.assign(user, newUser);
-
+ 
   return newUser;
 });
