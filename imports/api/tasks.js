@@ -132,7 +132,7 @@ const taskInsert = new ValidatedMethod({
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
-
+    console.log(Meteor.settings.cronStartupFrequency);
     console.log('imageUrl----------->',imageurl);
 
     const list = Lists.findOne({
