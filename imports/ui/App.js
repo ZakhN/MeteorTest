@@ -183,7 +183,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       >
 
       { 
-        this.props.currentUser.listsAllow === 0 || this.props.currentUser.tasksAllow === 0 ? 
+        this.props.currentUser && (this.props.currentUser.listsAllow === 0 || this.props.currentUser.tasksAllow) === 0 ? 
         <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
           <div className="example">
           <h1>React Stripe Elements Example</h1>
