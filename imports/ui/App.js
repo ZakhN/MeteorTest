@@ -25,6 +25,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         listName: '',
         popover: false,
         modal: true,
+        inputFiles: '',
       };
 
       this.toggleHideCompleted = this.toggleHideCompleted.bind(this);
@@ -57,7 +58,10 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       };
     
       let inputFile = document.getElementById('avatar').files;
-      
+
+      if (inputFile[0] && inputFile[1]) this.setState({ inputFiles: 2 });
+      else if (inputFile[0]) this.setState({ inputFiles: 1 });
+
       inputFile[0] && await new Promise((resolve, reject) => {
         uploader.send(inputFile[0], (error, downloadUrl) => {
           if (error) {
@@ -188,7 +192,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
           <div className="example">
           <h1>React Stripe Elements Example</h1>
           <Elements>
-            <CheckoutForm />
+            <CheckoutForm forWhat='ffffffff' sendToCalendar={this.state.sendToCalendar} inputFiles={this.state.inputFiles}/>
           </Elements>
           </div>
         </StripeProvider>
