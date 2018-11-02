@@ -15,7 +15,7 @@ class CheckoutForm extends Component {
     const methodParams = {
       token: token, 
       reason: this.props.reason, 
-      uploadFiles: this.props.uploadFiles && this.props.uploadFiles === 1 ? 1 : 2,
+      filesUpload: this.props.filesUpload && this.props.filesUpload === 1 ? 1 : 2,
     };
 
     await Meteor.call('stripe.charge', methodParams);

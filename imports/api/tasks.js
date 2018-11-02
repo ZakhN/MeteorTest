@@ -214,7 +214,7 @@ const taskInsert = new ValidatedMethod({
     if (Meteor.users.findOne({ _id: Meteor.userId() }).tasksAllow > 0) {
 
       Meteor.users.update(Meteor.userId(), { $inc: { 'tasksAllow': -1 } });
-      
+      Meteor.users.update(Meteor.userId(), { $set: { calendarPay: false } });
       Tasks.insert(task);
     } else throw new Meteor.Error('Your tasks have been over')
   },

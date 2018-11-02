@@ -18,12 +18,12 @@ const stripeCharge = new ValidatedMethod({
   validate: new SimpleSchema({
     token: { type: Object, blackbox: true },
     reason: { type: String },
-    uploadFiles: { type: Number, required: false },
+    filesUpload: { type: Number, required: false },
   }).validator(),
   async run({ token, reason, filesUpload }) {
     if (!this.userId) throw new Meteor.Error('Access denied');
 
-    console.log('reason',reason);
+    // console.log('reason',reason, 'filesUpload', filesUpload);
 
     if (Meteor.isServer) {
       const stripe = require("stripe")("sk_test_9X9pmPpxO0kViYpU2vPsAK8w");
@@ -37,7 +37,7 @@ const stripeCharge = new ValidatedMethod({
 
       if (reason === 'filesUpload' && filesUpload === 1) statusObj.amount = statusObj.amount + 100;
 
-      if (reason === 'filesUpload' && filesUpload === 2) statusObj.amount = statusObj.amount + 200;
+      if (reason === 'filesUpload' && filesUpload > 1) statusObj.amount = statusObj.amount + 200;
 
       if (reason === 'taskBuy') statusObj.amount = statusObj.amount + 100;
 

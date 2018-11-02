@@ -27,7 +27,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         listName: '',
 
         popover: false,
-        inputFiles: 0,
+        filesUpload: 0,
 
         listsAllow: this.props.currentUser && this.props.currentUser.listsAllow,
         tasksAllow: this.props.currentUser && this.props.currentUser.tasksAllow,
@@ -87,31 +87,9 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
 
       inputFile && this.setState({ inputFiles: inputFile.length });
 
-      inputFile[0] && await new Promise((resolve, reject) => {
-        uploader.send(inputFile[0], (error, downloadUrl) => {
-          if (error) {
-            console.error('Error uploading', /* uploader.xhr.response */ error);
-            alert (error);
-            reject(err);
-          } else {
-            task.imageurl = downloadUrl;
-          }
-          resolve();
-        });
-      });
+      Meteor.call('file.upload',{file: inputFile[0]});
 
-      inputFile[1] && await new Promise((resolve, reject) => {
-        uploader.send(inputFile[1], (error, downloadUrl) => {
-          if (error) {
-            console.error('Error uploading', /* uploader.xhr.response */ error);
-            alert (error);
-            reject(err);
-          } else {
-            task.imageurl1 = downloadUrl;
-          } 
-          resolve();
-        });
-      });
+      
 
       Meteor.call('tasks.insert', task,
       (error) => {
@@ -221,7 +199,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     }
   
   render() {
-    // console.log(this.props);
+    // console.log(this.props)
 
     const { loading } = this.props;
 
@@ -287,7 +265,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         </Modal>
 
         <Modal
-          isOpen={this.state.inputFiles > 0}
+          isOpen={this.state.filesUpload > 0}
           onAfterOpen={this.afterOpenModal}
           onRequestClose={this.closeModal}
           contentLabel="Pay for uploading file"
@@ -297,7 +275,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
             <div className="example">
               <h1>Pay for upload file</h1>
               <Elements>
-                <CheckoutForm reason={'fileUpload'} inputFiles={this.state.inputFiles}/>
+                <CheckoutForm reason={'fileUpload'} filesUpload={this.state.filesUpload}/>
               </Elements>
             </div>
           </StripeProvider>
@@ -352,7 +330,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
                       name="avatar"
                       accept="image/png, image/jpeg"
                       multiple
-                      onChange={({ target }) =>  this.setState({ inputFiles: target.files.length })}
+                      onChange={({ target }) =>  this.setState({ filesUpload: target.files.length })}
                     />
                     <Popover 
                       placement="bottom" 
