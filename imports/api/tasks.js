@@ -132,8 +132,6 @@ const taskInsert = new ValidatedMethod({
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
-    
-    // console.log('imageUrl----------->',imageurl);
 
     const list = Lists.findOne({
       _id: listId,
@@ -190,7 +188,7 @@ const taskInsert = new ValidatedMethod({
 
     if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
 
-    if (Meteor.isServer && sendToCalendar && codePhrase.length > 2) {
+    if (Meteor.isServer && sendToCalendar && codePhrase.length > 2 && Meteor.users.findOne(Meteor.userId()).calendarPay) {
 
       import * as GoogleCalendar from '../integrations/google/calendar';
 

@@ -10,17 +10,24 @@ class CheckoutForm extends Component {
   async submit() {
     let { token } = await this.props.stripe.createToken();
     
-    console.log(this.props);
+    if (this.props.sendToCalendar) methodParams.sendToCalendar = this.props.sendToCalendar;
 
-    Meteor.call('stripe.charge', { token: token});
+    const methodParams = {
+      token: token, 
+      reason: this.props.reason, 
+      uploadFiles: this.props.uploadFiles && this.props.uploadFiles === 1 ? 1 : 2,
+    };
+
+    await Meteor.call('stripe.charge', methodParams);
   }
-
+  
   render() {
     return (
       <div className="checkout">
         <p>Would you like to complete the purchase?</p>
         <CardElement />
         <button onClick={this.submit}>Send</button>
+        <button onClick={() => this.props.closeModal() }>CLoSe</button>
       </div>
     );
   }

@@ -3,6 +3,7 @@ import { withTracker } from 'meteor/react-meteor-data';
 import { Form, FormGroup, Input, Popover,  PopoverBody } from 'reactstrap';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import {Elements, StripeProvider} from 'react-stripe-elements';
+import Modal from 'react-modal';
 
 import { Meteor } from 'meteor/meteor';
 import { Tasks } from '../api/tasks.js';
@@ -20,22 +21,43 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       this.state = {
         hideChecked: false,
         sendToCalendar: false,
+
         todoText: '',
         listId: '',
         listName: '',
+
         popover: false,
-        modal: true,
-        inputFiles: '',
+        inputFiles: 0,
+
+        listsAllow: this.props.currentUser && this.props.currentUser.listsAllow,
+        tasksAllow: this.props.currentUser && this.props.currentUser.tasksAllow,
+
+        calendarModalIsOpen: false,
+        listModalIsOpen: false,
+        taskModalIsOpen: false,
+        filesModalIsOpen: false,
       };
 
       this.toggleHideCompleted = this.toggleHideCompleted.bind(this);
       this.toggleSendTocalendar = this.toggleSendTocalendar.bind(this);
       this.toglePopover = this.toglePopover.bind(this);
+
       this.handleSubmit = this.handleSubmit.bind(this);
       this.handleChange = this.handleChange.bind(this);
       this.handleChangeList = this.handleChangeList.bind(this);
       this.handleSubmitList = this.handleSubmitList.bind(this);
       this.handleListName = this.handleListName.bind(this);
+
+      this.openModal = this.openModal.bind(this);
+      this.afterOpenModal = this.afterOpenModal.bind(this);
+      this.closeModal = this.closeModal.bind(this);
+
+  
+      // this.handleInputFiles = this.handleInputFiles.bind(this);
+    }
+
+    componentWillMount() {
+      Modal.setAppElement('body');
     }
 
     componentDidUpdate(prevProps) {
@@ -48,7 +70,11 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     async handleSubmit(event) {
       event.preventDefault();
       if (this.props.currentUser && !this.props.currentUser.selectedListId) throw new Error('List isn`t select');
-
+      
+      if (this.props.currentUser && this.props.currentUser.tasksAllow === 0){
+        this.setState({ taskModalIsOpen: true });
+      } else {
+        
       const uploader = new Slingshot.Upload("myFileUploads");
      
       const task = {
@@ -59,8 +85,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     
       let inputFile = document.getElementById('avatar').files;
 
-      if (inputFile[0] && inputFile[1]) this.setState({ inputFiles: 2 });
-      else if (inputFile[0]) this.setState({ inputFiles: 1 });
+      inputFile && this.setState({ inputFiles: inputFile.length });
 
       inputFile[0] && await new Promise((resolve, reject) => {
         uploader.send(inputFile[0], (error, downloadUrl) => {
@@ -70,7 +95,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
             reject(err);
           } else {
             task.imageurl = downloadUrl;
-          } 
+          }
           resolve();
         });
       });
@@ -97,14 +122,36 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       });
       
       this.setState({todoText:''});
-      // mixpanel.track('Task added');
+      }
     }
 
     handleSubmitList(event) {
       event.preventDefault();
-      Meteor.call('lists.create', { listName: this.state.listName });
-      this.setState({ listName:'' });
+      if (this.props.currentUser && this.props.currentUser.listsAllow === 0) {
+        this.setState({listModalIsOpen: true});
+      } else {
+        Meteor.call('lists.create', { listName: this.state.listName });
+        this.setState({ listName:'' });
+      }
       // mixpanel.track('List added');
+    }
+
+    openModal() {
+      this.setState({modalIsOpen: true});
+    }
+  
+    afterOpenModal() {
+      // references are now sync'd and can be accessed.
+      // this.subtitle.style.color = '#f00';
+    }
+  
+    closeModal() {
+      this.setState({      
+        calendarModalIsOpen: false,
+        listModalIsOpen: false,
+        taskModalIsOpen: false,
+        filesModalIsOpen: false
+      });
     }
 
     handleListName() {
@@ -136,6 +183,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     toggleSendTocalendar() {
       this.setState({
         sendToCalendar: !this.state.sendToCalendar,
+        calendarModalIsOpen: !this.state.calendarModalIsOpen
       });
     }
     
@@ -174,6 +222,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
   
   render() {
     // console.log(this.props);
+
     const { loading } = this.props;
 
     if (loading) return null;
@@ -186,18 +235,73 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         transitionAppearTimeout={5000}
       >
 
-      { 
-        this.props.currentUser && (this.props.currentUser.listsAllow === 0 || this.props.currentUser.tasksAllow) === 0 ? 
-        <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
-          <div className="example">
-          <h1>React Stripe Elements Example</h1>
-          <Elements>
-            <CheckoutForm forWhat='ffffffff' sendToCalendar={this.state.sendToCalendar} inputFiles={this.state.inputFiles}/>
-          </Elements>
-          </div>
-        </StripeProvider>
-        : ''
-      }
+        <Modal
+          isOpen={this.state.calendarModalIsOpen}
+          onAfterOpen={this.afterOpenModal}
+          onRequestClose={this.closeModal}
+          contentLabel="Send to calendar"
+        >
+          <button onClick={this.closeModal}>close</button>
+          <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
+            <div className="example">
+              <h1>Pay for sending your task to calendar</h1>
+              <Elements>
+                <CheckoutForm reason={'sendCalendar'} closeModal={() => this.closeModal}/>
+              </Elements>
+            </div>
+          </StripeProvider>
+        </Modal> 
+         
+        <Modal
+          isOpen={this.state.listModalIsOpen}
+          onAfterOpen={this.afterOpenModal}
+          onRequestClose={this.closeModal}
+          contentLabel="Buy a list"
+        >
+          <button onClick={this.closeModal}>close</button>
+          <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
+            <div className="example">
+              <h1>Pay for buing addition list</h1>
+              <Elements>
+                <CheckoutForm reason={'listBuy'}/>
+              </Elements>
+            </div>
+          </StripeProvider>
+        </Modal>
+
+        <Modal
+          isOpen={this.state.taskModalIsOpen}
+          onAfterOpen={this.afterOpenModal}
+          onRequestClose={this.closeModal}
+          contentLabel="Buy a task"
+        >
+          <button onClick={this.closeModal}>close</button>
+          <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
+            <div className="example">
+              <h1>Pay for buing addition task</h1>
+              <Elements>
+                <CheckoutForm reason={'taskBuy'}/>
+              </Elements>
+            </div>
+          </StripeProvider>
+        </Modal>
+
+        <Modal
+          isOpen={this.state.inputFiles > 0}
+          onAfterOpen={this.afterOpenModal}
+          onRequestClose={this.closeModal}
+          contentLabel="Pay for uploading file"
+        >
+          <button onClick={this.closeModal}>close</button>
+          <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
+            <div className="example">
+              <h1>Pay for upload file</h1>
+              <Elements>
+                <CheckoutForm reason={'fileUpload'} inputFiles={this.state.inputFiles}/>
+              </Elements>
+            </div>
+          </StripeProvider>
+        </Modal>
 
         <div className="container">
           <div className="tasks-container">
@@ -248,8 +352,14 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
                       name="avatar"
                       accept="image/png, image/jpeg"
                       multiple
+                      onChange={({ target }) =>  this.setState({ inputFiles: target.files.length })}
                     />
-                    <Popover placement="bottom" isOpen={this.state.popover} target="taskText" toggle={this.toglePopover}>
+                    <Popover 
+                      placement="bottom" 
+                      isOpen={this.state.popover} 
+                      target="taskText" 
+                      toggle={this.toglePopover}
+                    >
                       <PopoverBody>
                         You should select task-list before insert a new task{' '}
                       </PopoverBody>

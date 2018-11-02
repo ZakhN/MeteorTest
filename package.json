@@ -8,8 +8,8 @@
     "visualize": "meteor --production --extra-packages bundle-visualizer"
   },
   "dependencies": {
-    "bcrypt": "^3.0.0",
     "@babel/runtime": "^7.1.2",
+    "bcrypt": "^3.0.0",
     "bootstrap": "^4.0.0-alpha.2",
     "classnames": "^2.2.6",
     "cron": "^1.4.1",
@@ -26,6 +26,7 @@
     "react": "^16.5.2",
     "react-addons-css-transition-group": "^15.6.2",
     "react-dom": "^16.5.2",
+    "react-modal": "^3.6.1",
     "react-stripe-elements": "^2.0.1",
     "react-transition-group": "^1.2.1",
     "reactstrap": "^6.5.0",

@@ -10,6 +10,7 @@ import SimpleSchema from 'simpl-schema';
 export const Lists = new Mongo.Collection('lists');
 
 import { Tasks } from './tasks';
+import Task from '../ui/Task';
 
 /**
  * lists.remove
@@ -20,7 +21,7 @@ const listRemove = new ValidatedMethod({
   validate: new SimpleSchema({
     listId: { type: String },
   }).validator(),
-  run({ listId }) {
+  async run({ listId }) {
     if (!this.userId) throw new Meteor.Error('Access denied');
 
     const list = Lists.findOne(listId);
@@ -37,8 +38,11 @@ const listRemove = new ValidatedMethod({
 
     if (isListRemoved) {
         Meteor.users.update({ selectedListId: list._id }, { $unset:  { 'selectedListId': 1 } });
+
+        const tasks = await Tasks.find({ listId: listId }).fetch();
+        
         Tasks.remove({ listId: listId });
-        Meteor.users.update(Meteor.userId(), { $inc: { 'listsAllow': +1 } });
+        Meteor.users.update(Meteor.userId(), { $inc: { 'listsAllow': +1,  'tasksAllow':  +tasks.length } });
     }
   }
 });

@@ -17,19 +17,35 @@ const stripeCharge = new ValidatedMethod({
   name: 'stripe.charge',
   validate: new SimpleSchema({
     token: { type: Object, blackbox: true },
+    reason: { type: String },
+    uploadFiles: { type: Number, required: false },
   }).validator(),
-  async run({ token }) {
+  async run({ token, reason, filesUpload }) {
     if (!this.userId) throw new Meteor.Error('Access denied');
+
+    console.log('reason',reason);
 
     if (Meteor.isServer) {
       const stripe = require("stripe")("sk_test_9X9pmPpxO0kViYpU2vPsAK8w");
 
-      let status = await stripe.charges.create({
-        amount: 100,
+      const statusObj = {
+        amount: 0,
         currency: "usd",
         description: "Charge for your dirty money",
         source: token.id,
-      });
+      };
+
+      if (reason === 'filesUpload' && filesUpload === 1) statusObj.amount = statusObj.amount + 100;
+
+      if (reason === 'filesUpload' && filesUpload === 2) statusObj.amount = statusObj.amount + 200;
+
+      if (reason === 'taskBuy') statusObj.amount = statusObj.amount + 100;
+
+      if (reason === 'listBuy') statusObj.amount = statusObj.amount + 100;
+
+      if (reason === 'sendCalendar') statusObj.amount = statusObj.amount + 100;
+
+      let status = await stripe.charges.create(statusObj);
 
       const charge = {
         userId: Meteor.userId(),
@@ -37,9 +53,23 @@ const stripeCharge = new ValidatedMethod({
         createdAt: new Date(),
       };
 
-      if (charge){
+
+      if(charge && reason === 'filesUpload'){
+        Meteor.users.update(Meteor.userId(), {$set: { filesUploadPay: true }});
+      }
+
+      if(charge && reason === 'sendCalendar'){
+        Meteor.users.update(Meteor.userId(), {$set: { calendarPay: true }});
+      }
+
+      if (charge && reason === 'taskBuy'){
         Payments.insert(charge);
         Meteor.users.update(Meteor.userId(), { $inc: { 'tasksAllow': +1 } });
+      }
+
+      if (charge && reason === 'listBuy'){
+        Payments.insert(charge);
+        Meteor.users.update(Meteor.userId(), { $inc: { 'listsAllow': +1 } });
       }
 
       return status;
