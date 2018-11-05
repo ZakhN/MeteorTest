@@ -6,7 +6,6 @@ import { DDPRateLimiter } from 'meteor/ddp-rate-limiter'
 
 import _ from 'lodash';
 import SimpleSchema from 'simpl-schema';
-// import stripe from "stripe";
 
 import { Lists } from './lists';
 

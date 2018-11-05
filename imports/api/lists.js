@@ -10,7 +10,6 @@ import SimpleSchema from 'simpl-schema';
 export const Lists = new Mongo.Collection('lists');
 
 import { Tasks } from './tasks';
-import Task from '../ui/Task';
 
 /**
  * lists.remove
@@ -219,6 +218,7 @@ if (Meteor.isServer) {
         selectedListId: 1,
         listsAllow: 1,
         tasksAllow: 1,
+        filesUploadPay: 1,
       },
     });
   });

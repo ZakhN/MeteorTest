@@ -24,8 +24,11 @@ const stripeCharge = new ValidatedMethod({
     if (!this.userId) throw new Meteor.Error('Access denied');
 
     // console.log('reason',reason, 'filesUpload', filesUpload);
-
+    
     if (Meteor.isServer) {
+
+      console.log('reason', reason, 'filesUpload', filesUpload, typeof filesUpload);
+
       const stripe = require("stripe")("sk_test_9X9pmPpxO0kViYpU2vPsAK8w");
 
       const statusObj = {
@@ -35,15 +38,23 @@ const stripeCharge = new ValidatedMethod({
         source: token.id,
       };
 
-      if (reason === 'filesUpload' && filesUpload === 1) statusObj.amount = statusObj.amount + 100;
-
-      if (reason === 'filesUpload' && filesUpload > 1) statusObj.amount = statusObj.amount + 200;
-
+      if (reason === 'fileUpload') {
+        if(filesUpload === 1) {
+          statusObj.amount = statusObj.amount + 100;
+        }
+        if(filesUpload === 2) {
+          statusObj.amount = statusObj.amount + 200;
+        }
+      }
+      
       if (reason === 'taskBuy') statusObj.amount = statusObj.amount + 100;
 
       if (reason === 'listBuy') statusObj.amount = statusObj.amount + 100;
 
+
       if (reason === 'sendCalendar') statusObj.amount = statusObj.amount + 100;
+      
+      if (statusObj.amount < 1) throw new Meteor.Error('too little charge poor!');
 
       let status = await stripe.charges.create(statusObj);
 
@@ -53,13 +64,12 @@ const stripeCharge = new ValidatedMethod({
         createdAt: new Date(),
       };
 
-
-      if(charge && reason === 'filesUpload'){
-        Meteor.users.update(Meteor.userId(), {$set: { filesUploadPay: true }});
+      if(charge && reason === 'fileUpload'){
+        Meteor.users.update(Meteor.userId(), { $set: { filesUploadPay: true } });
       }
 
       if(charge && reason === 'sendCalendar'){
-        Meteor.users.update(Meteor.userId(), {$set: { calendarPay: true }});
+        Meteor.users.update(Meteor.userId(), { $set: { calendarPay: true } });
       }
 
       if (charge && reason === 'taskBuy'){

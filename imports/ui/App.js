@@ -49,10 +49,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       this.handleListName = this.handleListName.bind(this);
 
       this.openModal = this.openModal.bind(this);
-      this.afterOpenModal = this.afterOpenModal.bind(this);
       this.closeModal = this.closeModal.bind(this);
 
-  
       // this.handleInputFiles = this.handleInputFiles.bind(this);
     }
 
@@ -86,10 +84,38 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       let inputFile = document.getElementById('avatar').files;
 
       inputFile && this.setState({ inputFiles: inputFile.length });
-
-      Meteor.call('file.upload',{file: inputFile[0]});
-
       
+      if (this.props.currentUser.filesUploadPay) {
+        inputFile[0] && inputFile[0] && await new Promise((resolve, reject) => {
+          uploader.send(inputFile[0], (error, downloadUrl) => {
+            if (error) {
+              console.error('Error uploading', /* uploader.xhr.response */ error);
+              alert (error);
+              reject(err);
+            } else {
+              task.imageurl1 = downloadUrl;
+            } 
+            resolve();
+          });
+        });
+  
+        inputFile[1] && inputFile[1] && await new Promise((resolve, reject) => {
+          uploader.send(inputFile[1], (error, downloadUrl) => {
+            if (error) {
+              console.error('Error uploading', /* uploader.xhr.response */ error);
+              alert (error);
+              reject(err);
+            } else {
+              task.imageurl1 = downloadUrl;
+            } 
+            resolve();
+          });
+        });
+      }
+  
+      // if (this.props.currentUser.filesUploadPay) Meteor.call('slingshot.upload', { file: inputFile[0] });
+
+      // console.log(typeof inputFile[0]);
 
       Meteor.call('tasks.insert', task,
       (error) => {
@@ -106,21 +132,15 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     handleSubmitList(event) {
       event.preventDefault();
       if (this.props.currentUser && this.props.currentUser.listsAllow === 0) {
-        this.setState({listModalIsOpen: true});
+        this.setState({ listModalIsOpen: true });
       } else {
         Meteor.call('lists.create', { listName: this.state.listName });
         this.setState({ listName:'' });
       }
-      // mixpanel.track('List added');
     }
 
     openModal() {
-      this.setState({modalIsOpen: true});
-    }
-  
-    afterOpenModal() {
-      // references are now sync'd and can be accessed.
-      // this.subtitle.style.color = '#f00';
+      this.setState({ modalIsOpen: true });
     }
   
     closeModal() {
@@ -135,7 +155,6 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     handleListName() {
       if (this.props.lists) {
         let list = this.props.lists.find( l => l._id === this.props.currentUser.selectedListId);
-        // mixpanel.track('Listname changed');
         return (list && list.name);
       }
     }
@@ -155,7 +174,6 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     toggleHideCompleted() {
       Meteor.call('tasks.hideChecked', { isCheked:!this.state.hideChecked });
       this.setState({ hideChecked: !this.state.hideChecked });
-      // mixpanel.track('Conpleated tasks hided');
     }
 
     toggleSendTocalendar() {
@@ -199,7 +217,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
     }
   
   render() {
-    // console.log(this.props)
+    console.log(this.props);
 
     const { loading } = this.props;
 
@@ -265,7 +283,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         </Modal>
 
         <Modal
-          isOpen={this.state.filesUpload > 0}
+          isOpen={this.state.filesModalIsOpen}
           onAfterOpen={this.afterOpenModal}
           onRequestClose={this.closeModal}
           contentLabel="Pay for uploading file"
@@ -330,7 +348,7 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
                       name="avatar"
                       accept="image/png, image/jpeg"
                       multiple
-                      onChange={({ target }) =>  this.setState({ filesUpload: target.files.length })}
+                      onChange={({ target }) =>  this.setState({ filesUpload: target.files.length, filesModalIsOpen: !this.state.filesModalIsOpen })}
                     />
                     <Popover 
                       placement="bottom" 

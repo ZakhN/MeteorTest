@@ -6,12 +6,12 @@ import '../imports/api/lists';
 import '../imports/api/stripe';
 import '../imports/startup/account-creation';
 
-
 import cron from '../imports/startup/cron-reports';
 
 dotenv.config({ path: `${process.env.PWD}/.env` });
 
 Meteor.startup(() => {
+
   cron.start();
 
   Slingshot.createDirective('myFileUploads', Slingshot.S3Storage, {
@@ -35,5 +35,4 @@ Meteor.startup(() => {
       return 'admin/' + Date.now() + file.name;
     }
    });
-
 });

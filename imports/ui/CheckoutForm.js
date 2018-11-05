@@ -12,11 +12,18 @@ class CheckoutForm extends Component {
     
     if (this.props.sendToCalendar) methodParams.sendToCalendar = this.props.sendToCalendar;
 
+    console.log(this.props);
+
     const methodParams = {
       token: token, 
-      reason: this.props.reason, 
-      filesUpload: this.props.filesUpload && this.props.filesUpload === 1 ? 1 : 2,
+      reason: this.props.reason
     };
+    
+    if (this.props.filesUpload === 1) methodParams.filesUpload = 1;
+
+    if (this.props.filesUpload > 1) methodParams.filesUpload = 2;
+
+    console.log('methodParams', methodParams);
 
     await Meteor.call('stripe.charge', methodParams);
   }
@@ -27,7 +34,6 @@ class CheckoutForm extends Component {
         <p>Would you like to complete the purchase?</p>
         <CardElement />
         <button onClick={this.submit}>Send</button>
-        <button onClick={() => this.props.closeModal() }>CLoSe</button>
       </div>
     );
   }

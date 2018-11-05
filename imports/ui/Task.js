@@ -22,17 +22,14 @@ class Task extends Component {
   
   toggleChecked() {
     Meteor.call('tasks.setChecked', { taskId: this.props.task._id, setChecked: !this.props.task.checked });
-    // mixpanel.track('Task set checked');
   }
 
   deleteThisTask() {
     Meteor.call('tasks.remove',  { taskId: this.props.task._id, listId: this.props.task.listId });
-    // mixpanel.track('Task deleted');
   }
 
   togglePrivate() {
     Meteor.call('tasks.setPrivate', { taskId: this.props.task._id,  setToPrivate: !this.props.task.private });
-    // mixpanel.track('Task set private');
   }
 
   render() {

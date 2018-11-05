@@ -1,4 +1,3 @@
-import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
 
 import { ValidatedMethod } from 'meteor/mdg:validated-method';
@@ -7,44 +6,34 @@ import { DDPRateLimiter } from 'meteor/ddp-rate-limiter';
 import _ from 'lodash';
 import SimpleSchema from 'simpl-schema';
 
-const uploadFile = new ValidatedMethod({
-  name: 'file.upload',
+const slingshotUpload = new ValidatedMethod({
+  name: 'slingshot.upload',
   validate: new SimpleSchema({
     file: { type: Object, blackbox: true },
   }).validator(),
   async run({ file }) {
 
-    const uploader = new Slingshot.Upload("myFileUploads");
-    
-    uploader.send(file, (error, downloadUrl) => {
-      if (error) {
-        console.error('Error uploading', /* uploader.xhr.response */ error);
-        alert (error);
-        reject(err);
-      } else {
-        task.imageurl = downloadUrl;
-      }
-    });
+    const AWS = require('aws-sdk');
+    const Busboy = require('busboy');
 
-    // inputFile[1] && await new Promise((resolve, reject) => {
-    //   uploader.send(inputFile[1], (error, downloadUrl) => {
-    //     if (error) {
-    //       console.error('Error uploading', /* uploader.xhr.response */ error);
-    //       alert (error);
-    //       reject(err);
-    //     } else {
-    //       task.imageurl1 = downloadUrl;
-    //     } 
-    //     resolve();
-    //   });
-    // });
+    const BUCKET_NAME = '';
+    const IAM_USER_KEY = '';
+    const IAM_USER_SECRET = '';
+
+    function uploadToS3(file) {
+     let s3bucket = new AWS.S3({
+       accessKeyId: IAM_USER_KEY,
+       secretAccessKey: IAM_USER_SECRET,
+       Bucket: BUCKET_NAME,
+     });
+    }
   }
 });
 
 if (Meteor.isServer) {
 
   const LISTS_METHODS = _.map([
-    uploadFile,
+    slingshotUpload,
   ], 'name');
 
   DDPRateLimiter.addRule({
