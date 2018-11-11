@@ -1,11 +1,13 @@
 import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
-
+var fs = require('fs');
 import { ValidatedMethod } from 'meteor/mdg:validated-method';
 import { DDPRateLimiter } from 'meteor/ddp-rate-limiter'
 
 import _ from 'lodash';
 import SimpleSchema from 'simpl-schema';
+var AWS = require('aws-sdk');
+var s3 = new AWS.S3();
 
 import { Lists } from './lists';
 
@@ -123,11 +125,11 @@ const taskInsert = new ValidatedMethod({
   validate: new SimpleSchema({
     imageurl: { type: String, required: false },
     imageurl1: { type: String, required: false },
+    sendToCalendar: { type: Boolean, required: false },
     text: { type: String },
-    sendToCalendar: { type: Boolean },
     listId: { type: String },
   }).validator(),
-    async run({ text, sendToCalendar, listId, imageurl, imageurl1 }) {
+    async run({ text, sendToCalendar, listId, imageurl, imageurl1, inputFile }) {
     if (!this.userId) {
       throw new Meteor.Error('not-authorized');
     }
@@ -137,20 +139,8 @@ const taskInsert = new ValidatedMethod({
       'members.role': 'admin',
       'members.userId': this.userId,
     });
-
+    // console.log('list', list);
     if (!list) throw new Meteor.Error('Access denied');
-
-    if (Meteor.isServer) {
-
-      const stripe = require("stripe")("sk_test_9X9pmPpxO0kViYpU2vPsAK8w");
-  
-      const charge = stripe.charges.create({
-        amount: 999,
-        currency: 'usd',
-        source: 'tok_visa',
-        receipt_email: 'jenny.rosen@example.com',
-      });
-    }
 
     //#region RegExps
     let codePhrase = '';
@@ -185,9 +175,13 @@ const taskInsert = new ValidatedMethod({
       imageurl1
     };
 
+    if (imageurl) task.imageurl = imageurl;
+
+    if (imageurl1) task.imageurl1 = imageurl;
+
     if (codePhrase.length > 1) task.dueDate = new Date(moment.utc(codePhrase).format());
 
-    if (Meteor.isServer && sendToCalendar && codePhrase.length > 2 && Meteor.users.findOne(Meteor.userId()).calendarPay) {
+    if (Meteor.isServer && sendToCalendar && codePhrase.length > 2) {
 
       import * as GoogleCalendar from '../integrations/google/calendar';
 
@@ -211,9 +205,17 @@ const taskInsert = new ValidatedMethod({
     }
 
     if (Meteor.users.findOne({ _id: Meteor.userId() }).tasksAllow > 0) {
-
       Meteor.users.update(Meteor.userId(), { $inc: { 'tasksAllow': -1 } });
-      Meteor.users.update(Meteor.userId(), { $set: { calendarPay: false } });
+
+    //   params = {Bucket: myBucket, Key: myKey, Body: 'Hello!'};
+    //   s3.putObject(params, function(err, data) {
+    //     if (err) {
+    //         console.log(err)
+    //     } else {
+    //         console.log("Successully uploaded data to myBucket/myKey");
+    //     }
+    //  });
+    
       Tasks.insert(task);
     } else throw new Meteor.Error('Your tasks have been over')
   },

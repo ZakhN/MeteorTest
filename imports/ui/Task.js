@@ -109,7 +109,7 @@ class Task extends Component {
             </Badge>
         
             <strong>
-              <Badge> 
+              <Badge>
                 {this.props.task.username} : {' '}
               </Badge>  
             </strong>

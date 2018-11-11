@@ -1,0 +1,9 @@
+{
+  "cronStartupFrequency": "21 40 * *",
+  "public": {
+    "bucket": "nickolay",
+    "region": "eu-central-1",
+    "mixpanelId": "1f2df58982c691859bec79a87ffe4dd7",
+    "stripePublicToken": "pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V"
+  }
+}

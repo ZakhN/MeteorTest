@@ -2,15 +2,17 @@ import React, { Component } from 'react';
 import { withTracker } from 'meteor/react-meteor-data';
 import { Form, FormGroup, Input, Popover,  PopoverBody } from 'reactstrap';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
-import {Elements, StripeProvider} from 'react-stripe-elements';
+import { Elements, StripeProvider } from 'react-stripe-elements';
 import Modal from 'react-modal';
 
 import { Meteor } from 'meteor/meteor';
 import { Tasks } from '../api/tasks.js';
 import { Lists } from '../api/lists.js';
+import { Payments } from '../api/payments.js';
 
 import Task from './Task.js';
 import List from './Lists.js';
+import Payment from './Payments.js';
 import CheckoutForm from './CheckoutForm';
 import AccountsUIWrapper from './AccountsUIWrapper.js';
  
@@ -20,14 +22,16 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
    
       this.state = {
         hideChecked: false,
-        sendToCalendar: false,
 
+        sendToCalendar: false,
         todoText: '',
         listId: '',
-        listName: '',
 
+        listName: '',
         popover: false,
         filesUpload: 0,
+        imageurl: '',
+        imageurl1: '',
 
         listsAllow: this.props.currentUser && this.props.currentUser.listsAllow,
         tasksAllow: this.props.currentUser && this.props.currentUser.tasksAllow,
@@ -36,6 +40,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         listModalIsOpen: false,
         taskModalIsOpen: false,
         filesModalIsOpen: false,
+
+        inputFile: '',
       };
 
       this.toggleHideCompleted = this.toggleHideCompleted.bind(this);
@@ -51,7 +57,6 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       this.openModal = this.openModal.bind(this);
       this.closeModal = this.closeModal.bind(this);
 
-      // this.handleInputFiles = this.handleInputFiles.bind(this);
     }
 
     componentWillMount() {
@@ -64,68 +69,66 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         // this.setState({ selectedList: this.this.props.currentUser && this.props.currentUser.profile &&  this.props.currentUser.profile.selectedListId});
       }
     }
-
+    
     async handleSubmit(event) {
       event.preventDefault();
+
       if (this.props.currentUser && !this.props.currentUser.selectedListId) throw new Error('List isn`t select');
       
       if (this.props.currentUser && this.props.currentUser.tasksAllow === 0){
         this.setState({ taskModalIsOpen: true });
-      } else {
+      } else {   
         
-      const uploader = new Slingshot.Upload("myFileUploads");
-     
-      const task = {
-        text: this.state.todoText, 
-        sendToCalendar: this.state.sendToCalendar,
-        listId: this.props.currentUser ? this.props.currentUser.selectedListId : '' 
-      };
+        const task = {
+          text: this.state.todoText, 
+          sendToCalendar: this.state.sendToCalendar,
+          listId: this.props.currentUser ? this.props.currentUser.selectedListId : '' 
+        };
+
+        const uploader = new Slingshot.Upload("myFileUploads");
+        
+        let inputFile = document.getElementById('avatar').files;
+
+        inputFile && this.setState({ inputFiles: inputFile.length });
+        
+        if (this.props.currentUser) {
+          inputFile[0] && inputFile[0] && await new Promise((resolve, reject) => {
+            uploader.send(inputFile[0], (error, downloadUrl) => {
+              if (error) {
+                console.error('Error uploading', /* uploader.xhr.response */ error);
+                alert (error);
+                reject(error);
+              } else {
+                this.state.imageurl = downloadUrl; 
+                task.imageurl = downloadUrl;
+              } 
+              resolve();
+            });
+          });
     
-      let inputFile = document.getElementById('avatar').files;
-
-      inputFile && this.setState({ inputFiles: inputFile.length });
-      
-      if (this.props.currentUser.filesUploadPay) {
-        inputFile[0] && inputFile[0] && await new Promise((resolve, reject) => {
-          uploader.send(inputFile[0], (error, downloadUrl) => {
-            if (error) {
-              console.error('Error uploading', /* uploader.xhr.response */ error);
-              alert (error);
-              reject(err);
-            } else {
-              task.imageurl1 = downloadUrl;
-            } 
-            resolve();
+          inputFile[1] && inputFile[1] && await new Promise((resolve, reject) => {
+            uploader.send(inputFile[1], (error, downloadUrl) => {
+              if (error) {
+                console.error('Error uploading', /* uploader.xhr.response */ error);
+                alert (error);
+                reject(err);
+              } else {
+                this.state.imageurl1 = downloadUrl;
+                task.imageurl1 = downloadUrl;
+              } 
+              resolve();
+            });
           });
-        });
-  
-        inputFile[1] && inputFile[1] && await new Promise((resolve, reject) => {
-          uploader.send(inputFile[1], (error, downloadUrl) => {
-            if (error) {
-              console.error('Error uploading', /* uploader.xhr.response */ error);
-              alert (error);
-              reject(err);
-            } else {
-              task.imageurl1 = downloadUrl;
-            } 
-            resolve();
-          });
-        });
-      }
-  
-      // if (this.props.currentUser.filesUploadPay) Meteor.call('slingshot.upload', { file: inputFile[0] });
-
-      // console.log(typeof inputFile[0]);
-
-      Meteor.call('tasks.insert', task,
-      (error) => {
-        if (error && error.error ) {
-          this.toglePopover();
-          console.log('ERRR,', error);
         }
-      });
-      
-      this.setState({todoText:''});
+
+        Meteor.call('tasks.insert', task,
+        (error) => {
+          if (error && error.error) {
+            this.toglePopover();
+            console.log('ERRR,', error);
+          }
+        });
+        this.setState({ todoText: '' });
       }
     }
 
@@ -183,6 +186,16 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
       });
     }
     
+    renderPayments() {
+      if (this.props.payments) {
+        return this.props.payments.map((payment) => {
+        return (
+          <Payment payment={payment}/>
+        );
+      });
+      }
+    }
+
     renderLists() {
       return this.props.lists.map((list) => {
         return (
@@ -215,10 +228,8 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         );
       });
     }
-  
-  render() {
-    console.log(this.props);
-
+    render() {
+      
     const { loading } = this.props;
 
     if (loading) return null;
@@ -230,24 +241,6 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
         transitionAppear={true}
         transitionAppearTimeout={5000}
       >
-
-        <Modal
-          isOpen={this.state.calendarModalIsOpen}
-          onAfterOpen={this.afterOpenModal}
-          onRequestClose={this.closeModal}
-          contentLabel="Send to calendar"
-        >
-          <button onClick={this.closeModal}>close</button>
-          <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
-            <div className="example">
-              <h1>Pay for sending your task to calendar</h1>
-              <Elements>
-                <CheckoutForm reason={'sendCalendar'} closeModal={() => this.closeModal}/>
-              </Elements>
-            </div>
-          </StripeProvider>
-        </Modal> 
-         
         <Modal
           isOpen={this.state.listModalIsOpen}
           onAfterOpen={this.afterOpenModal}
@@ -255,11 +248,15 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
           contentLabel="Buy a list"
         >
           <button onClick={this.closeModal}>close</button>
-          <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
+          <StripeProvider apiKey={Meteor.settings.public.stripePublicToken}>
             <div className="example">
               <h1>Pay for buing addition list</h1>
               <Elements>
-                <CheckoutForm reason={'listBuy'}/>
+                <CheckoutForm 
+                  reason={'listBuy'} 
+                  listName={this.state.listName} 
+                  close={this.closeModal} 
+                />
               </Elements>
             </div>
           </StripeProvider>
@@ -272,28 +269,22 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
           contentLabel="Buy a task"
         >
           <button onClick={this.closeModal}>close</button>
-          <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
+          <StripeProvider apiKey={Meteor.settings.public.stripePublicToken}>
             <div className="example">
               <h1>Pay for buing addition task</h1>
+              <h2>{}</h2>
               <Elements>
-                <CheckoutForm reason={'taskBuy'}/>
-              </Elements>
-            </div>
-          </StripeProvider>
-        </Modal>
-
-        <Modal
-          isOpen={this.state.filesModalIsOpen}
-          onAfterOpen={this.afterOpenModal}
-          onRequestClose={this.closeModal}
-          contentLabel="Pay for uploading file"
-        >
-          <button onClick={this.closeModal}>close</button>
-          <StripeProvider apiKey="pk_test_Z6XVuD8cS6WhLdCMPN09Kb0V">
-            <div className="example">
-              <h1>Pay for upload file</h1>
-              <Elements>
-                <CheckoutForm reason={'fileUpload'} filesUpload={this.state.filesUpload}/>
+                <CheckoutForm
+                  close={this.closeModal}
+                  reason={'taskBuy'} 
+                  sendToCalendar={this.state.sendToCalendar} 
+                  filesUpload={this.state.filesUpload}
+                  todoText={this.state.todoText}
+                  listId={this.props.currentUser ? this.props.currentUser.selectedListId : ''}
+                  file={this.state.inputFile}
+                  imageurl={this.state.imageurl}
+                  imageurl1={this.state.imageurl1}
+                />
               </Elements>
             </div>
           </StripeProvider>
@@ -342,13 +333,13 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
                       value={this.state.todoText}
                       onChange={this.handleChange}
                     />
-                    <input 
+                    <input
                       type="file"
                       id="avatar" 
                       name="avatar"
                       accept="image/png, image/jpeg"
                       multiple
-                      onChange={({ target }) =>  this.setState({ filesUpload: target.files.length, filesModalIsOpen: !this.state.filesModalIsOpen })}
+                      onChange={({ target }) => this.setState({ filesUpload: target.files.length })}
                     />
                     <Popover 
                       placement="bottom" 
@@ -366,10 +357,12 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
             }
             </header>
 
-
+          <div>
+           
             <ul>
               {this.renderTasks()}
-            </ul> 
+            </ul>
+          </div>
           </div>
           {this.props.currentUser
           ? <div className="lists-container">
@@ -396,6 +389,15 @@ import AccountsUIWrapper from './AccountsUIWrapper.js';
                 { this.renderLists() }
               </ul>
           </div> : ''}
+
+
+          {this.props.currentUser
+          ? <div className="payments-container">
+            <h1>Payments</h1>
+              <ul>
+                { this.renderPayments() }
+              </ul>
+            </div> : ''}
         </div>
       </ReactCSSTransitionGroup>
     );
@@ -406,12 +408,14 @@ export default withTracker(() => {
   const tasksSub = Meteor.subscribe('tasks');
   const listsSub = Meteor.subscribe('lists');
   const userSub = Meteor.subscribe('user');
+  const paymentsSub  = Meteor.subscribe('payments');
 
   return {
+    payments: Payments.find({}, { sort: { createdAt: -1 } }).fetch(),
     tasks: Tasks.find({}, { sort: { createdAt: -1 } }).fetch(),
     lists: Lists.find({}, { sort: { createdAt: -1 } }).fetch(),
     incompleteCount: Tasks.find({ checked: { $ne: true } }).count(),
     currentUser: Meteor.user(),
-    loading: !tasksSub.ready() || !listsSub.ready() || !userSub.ready()
+    loading: !tasksSub.ready() || !listsSub.ready() || !userSub.ready() || !paymentsSub.ready()
   };
 })(App);

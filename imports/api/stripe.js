@@ -7,7 +7,7 @@ import { DDPRateLimiter } from 'meteor/ddp-rate-limiter';
 import _ from 'lodash';
 import SimpleSchema from 'simpl-schema';
 
-export const Payments = new Mongo.Collection('payments');
+import { Payments } from './payments'; 
 
 /**
  * stripe.charge
@@ -18,71 +18,66 @@ const stripeCharge = new ValidatedMethod({
   validate: new SimpleSchema({
     token: { type: Object, blackbox: true },
     reason: { type: String },
-    filesUpload: { type: Number, required: false },
+    items: { type: Object, blackbox: true },
   }).validator(),
-  async run({ token, reason, filesUpload }) {
+  async run({ token, reason, items }) {
     if (!this.userId) throw new Meteor.Error('Access denied');
-
-    // console.log('reason',reason, 'filesUpload', filesUpload);
     
     if (Meteor.isServer) {
-
-      console.log('reason', reason, 'filesUpload', filesUpload, typeof filesUpload);
-
-      const stripe = require("stripe")("sk_test_9X9pmPpxO0kViYpU2vPsAK8w");
+      const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
       const statusObj = {
         amount: 0,
         currency: "usd",
-        description: "Charge for your dirty money",
+        description: "Charge",
         source: token.id,
       };
 
-      if (reason === 'fileUpload') {
-        if(filesUpload === 1) {
-          statusObj.amount = statusObj.amount + 100;
-        }
-        if(filesUpload === 2) {
-          statusObj.amount = statusObj.amount + 200;
-        }
-      }
-      
       if (reason === 'taskBuy') statusObj.amount = statusObj.amount + 100;
-
       if (reason === 'listBuy') statusObj.amount = statusObj.amount + 100;
+      if (items.sendToCalendar) statusObj.amount = statusObj.amount + 50;
+      if (items.filesUpload === 2) statusObj.amount = statusObj.amount + 150;
+      if (items.filesUplad === 1) statusObj.amount = statusObj.amount + 75;
 
-
-      if (reason === 'sendCalendar') statusObj.amount = statusObj.amount + 100;
-      
-      if (statusObj.amount < 1) throw new Meteor.Error('too little charge poor!');
-
-      let status = await stripe.charges.create(statusObj);
-
-      const charge = {
+      let charge = await stripe.charges.create(statusObj);
+      console.log(items);
+      const payment = {
         userId: Meteor.userId(),
-        status,
+        charge,
         createdAt: new Date(),
+        reason: reason,
+        status: statusObj,
+        additionalOptions: [
+          items.sendToCalendar ? 'send to calendar'  : null,
+          items.filesUpload ? 'filesUploud' : null,
+        ]
       };
 
-      if(charge && reason === 'fileUpload'){
-        Meteor.users.update(Meteor.userId(), { $set: { filesUploadPay: true } });
-      }
-
-      if(charge && reason === 'sendCalendar'){
-        Meteor.users.update(Meteor.userId(), { $set: { calendarPay: true } });
-      }
+      // if (items) {
+      //   if (items.sendToCalendar){
+      //     payment.additionalOptions['send to calendar'];
+      //   }
+      //   if (items.filesUploud) {
+      //     payment.additionalOptions['filesUploud:', items.filesUploud];
+      //   }
+      // }
+      
+      console.log('+++++++++++++++++');
+      // console.log('payment', payment);
 
       if (charge && reason === 'taskBuy'){
-        Payments.insert(charge);
         Meteor.users.update(Meteor.userId(), { $inc: { 'tasksAllow': +1 } });
+        payment.reason = reason;
+        Payments.insert(payment);
       }
 
       if (charge && reason === 'listBuy'){
-        Payments.insert(charge);
         Meteor.users.update(Meteor.userId(), { $inc: { 'listsAllow': +1 } });
+        payment.reason = reason;
+        Payments.insert(payment);
       }
 
-      return status;
+      return payment;
     }
   }
 });

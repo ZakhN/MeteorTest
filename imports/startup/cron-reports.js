@@ -28,7 +28,7 @@ const cron = new CronJob(Meteor.settings.cronStartupFrequency, Meteor.bindEnviro
       popularListName: popularList && popularList.name,
     };
 
-    console.log('result', result);
+    // console.log('result', result);
     
     sendEmail({ email: 'zakh@milkandcartoons.com', report: result });
 

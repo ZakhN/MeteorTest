@@ -18,7 +18,7 @@ Accounts.onCreateUser( (options, user) => {
   
   list.ownername = user.username;
 
-  const listId = Lists.insert(list);
+  const listId = lists.create(list);
 
   let newUser = {
     selectedListId: listId,
