@@ -17,8 +17,8 @@ Accounts.onCreateUser( (options, user) => {
   if (!user.username) user.username = user.services.google.name;
   
   list.ownername = user.username;
-
-  const listId = lists.create(list);
+  
+  const listId = Lists.insert(list);
 
   let newUser = {
     selectedListId: listId,
